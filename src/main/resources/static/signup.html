@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account – AI Career Twin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body>
+
+<div class="auth-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<div class="auth-page">
+    <div class="auth-card">
+
+        <!-- Brand -->
+        <a href="/home.html" class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-network-wired"></i></div>
+            <span class="brand-name">AI Career <span>Twin</span></span>
+        </a>
+
+        <!-- Header -->
+        <div class="card-head">
+            <h1>Create your account</h1>
+            <p>Start your AI-powered career journey today</p>
+        </div>
+
+        <!-- Message box -->
+        <div class="msg-box" id="msg-box"></div>
+
+        <!-- Form -->
+        <form id="signup-form" onsubmit="handleSignup(event)" novalidate>
+
+            <!-- Full Name -->
+            <div class="field" id="fg-name">
+                <label for="reg-name">Full Name</label>
+                <div class="input-box">
+                    <i class="fa-solid fa-user fi"></i>
+                    <input type="text" id="reg-name" placeholder="Enter your full name" autocomplete="name" required>
+                </div>
+                <span class="field-err" id="err-name"></span>
+            </div>
+
+            <!-- Email -->
+            <div class="field" id="fg-email">
+                <label for="reg-email">Email Address</label>
+                <div class="input-box">
+                    <i class="fa-solid fa-envelope fi"></i>
+                    <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" required>
+                </div>
+                <span class="field-err" id="err-email"></span>
+            </div>
+
+            <!-- Mobile -->
+            <div class="field" id="fg-mobile">
+                <label for="reg-mobile">Mobile Number</label>
+                <div class="input-box">
+                    <i class="fa-solid fa-mobile-screen fi"></i>
+                    <input type="tel" id="reg-mobile" placeholder="+91 XXXXX XXXXX" autocomplete="tel" maxlength="15" required>
+                </div>
+                <span class="field-err" id="err-mobile"></span>
+            </div>
+
+            <!-- Password -->
+            <div class="field" id="fg-pwd">
+                <label for="reg-pwd">Password</label>
+                <div class="input-box">
+                    <i class="fa-solid fa-lock fi"></i>
+                    <input type="password" id="reg-pwd" placeholder="Min. 8 characters" autocomplete="new-password" required oninput="updateStrength()">
+                    <button type="button" class="eye-btn" onclick="togglePwd('reg-pwd', this)" aria-label="Toggle password">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <div class="str-track"><div class="str-fill" id="str-fill"></div></div>
+                <span class="str-lbl" id="str-lbl"></span>
+                <span class="field-err" id="err-pwd"></span>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="field" id="fg-confirm">
+                <label for="reg-confirm">Confirm Password</label>
+                <div class="input-box">
+                    <i class="fa-solid fa-shield-halved fi"></i>
+                    <input type="password" id="reg-confirm" placeholder="Re-enter your password" autocomplete="new-password" required>
+                    <button type="button" class="eye-btn" onclick="togglePwd('reg-confirm', this)" aria-label="Toggle confirm password">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <span class="field-err" id="err-confirm"></span>
+            </div>
+
+            <!-- Terms -->
+            <label class="terms-row">
+                <input type="checkbox" id="reg-terms">
+                <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></span>
+            </label>
+
+            <!-- Submit -->
+            <button type="submit" class="btn-main" id="create-btn">
+                <span id="btn-text"><i class="fa-solid fa-circle-nodes"></i> Create Account</span>
+                <span id="btn-load" class="hidden"><i class="fa-solid fa-spinner fa-spin"></i> Creating…</span>
+            </button>
+
+        </form>
+
+        <div class="switch-link">
+            Already have an account? <a href="/login.html">Login</a>
+        </div>
+
+    </div>
+
+    <div class="auth-foot">
+        <p>© 2026 AI Career Twin &nbsp;·&nbsp; B.E. CSE Final Year Project</p>
+    </div>
+</div>
+
+<script>
+function togglePwd(id, btn) {
+    const inp = document.getElementById(id);
+    const ic  = btn.querySelector('i');
+    if (inp.type === 'password') { inp.type = 'text'; ic.classList.replace('fa-eye','fa-eye-slash'); }
+    else                         { inp.type = 'password'; ic.classList.replace('fa-eye-slash','fa-eye'); }
+}
+
+function updateStrength() {
+    const v = document.getElementById('reg-pwd').value;
+    let s = 0;
+    if (v.length >= 8)           s++;
+    if (/[A-Z]/.test(v))         s++;
+    if (/[0-9]/.test(v))         s++;
+    if (/[^A-Za-z0-9]/.test(v)) s++;
+    const lvl = [
+        {w:'0%',   c:'transparent', t:'',       css:''},
+        {w:'25%',  c:'#ef4444',     t:'Weak',   css:'color:#ef4444'},
+        {w:'50%',  c:'#f59e0b',     t:'Fair',   css:'color:#f59e0b'},
+        {w:'75%',  c:'#3b82f6',     t:'Good',   css:'color:#3b82f6'},
+        {w:'100%', c:'#10b981',     t:'Strong', css:'color:#10b981'},
+    ][s];
+    const fill = document.getElementById('str-fill');
+    const lbl  = document.getElementById('str-lbl');
+    fill.style.width      = lvl.w;
+    fill.style.background = lvl.c;
+    lbl.textContent       = lvl.t;
+    lbl.setAttribute('style', lvl.css);
+}
+
+function validate() {
+    let ok = true;
+    const clear = id => { document.getElementById('err-'+id).textContent=''; document.getElementById('fg-'+id).classList.remove('valid','invalid'); };
+    const bad   = (id, msg) => { document.getElementById('err-'+id).textContent=msg; document.getElementById('fg-'+id).classList.add('invalid'); ok=false; };
+    const good  = id => { document.getElementById('fg-'+id).classList.add('valid'); };
+
+    ['name','email','mobile','pwd','confirm'].forEach(clear);
+
+    const name    = document.getElementById('reg-name').value.trim();
+    const email   = document.getElementById('reg-email').value.trim();
+    const mobile  = document.getElementById('reg-mobile').value.trim();
+    const pwd     = document.getElementById('reg-pwd').value;
+    const confirm = document.getElementById('reg-confirm').value;
+
+    if (name.length < 2)                               bad('name',    'Enter your full name.');       else good('name');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))    bad('email',   'Enter a valid email.');        else good('email');
+    if (!/^[+\d\s\-]{7,15}$/.test(mobile))            bad('mobile',  'Enter a valid mobile number.'); else good('mobile');
+    if (pwd.length < 8)                                bad('pwd',     'Password must be at least 8 characters.'); else good('pwd');
+    if (confirm !== pwd || confirm.length === 0)       bad('confirm', 'Passwords do not match.');     else good('confirm');
+
+    return ok;
+}
+
+function showMsg(text, type) {
+    const el = document.getElementById('msg-box');
+    el.textContent = text;
+    el.className = 'msg-box ' + type;
+}
+
+function setLoad(on) {
+    document.getElementById('btn-text').classList.toggle('hidden', on);
+    document.getElementById('btn-load').classList.toggle('hidden', !on);
+    document.getElementById('create-btn').disabled = on;
+}
+
+async function handleSignup(e) {
+    e.preventDefault();
+    if (!validate()) return;
+
+    if (!document.getElementById('reg-terms').checked) {
+        showMsg('Please accept the Terms of Service to continue.', 'error');
+        return;
+    }
+
+    setLoad(true);
+    const username = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-pwd').value;
+
+    try {
+        const res  = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showMsg(data.error || 'Registration failed. Please try again.', 'error');
+        } else {
+            showMsg('Account created! Redirecting to login…', 'success');
+            setTimeout(() => { window.location.href = '/login.html'; }, 1600);
+        }
+    } catch {
+        showMsg('Could not connect to server. Please try again.', 'error');
+    } finally {
+        setLoad(false);
+    }
+}
+</script>
+</body>
+</html>

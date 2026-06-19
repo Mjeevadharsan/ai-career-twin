@@ -1,0 +1,16 @@
+.project-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 10px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: transform var(--transition), border-color var(--transition);
+}
+.project-card:hover { transform: translateY(-2px); border-color: var(--blue-400); }
+.project-icon {
+  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+}
+.project-info { flex: 1; }
+.project-title { font-size: 0.88rem; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+.project-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.project-arrow { color: var(--text-secondary); font-size: 0.8rem; transition: color var(--transition); }
+.project-card:hover .project-arrow { color: var(--blue-400); }

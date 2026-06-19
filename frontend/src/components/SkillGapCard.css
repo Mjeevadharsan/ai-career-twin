@@ -1,0 +1,14 @@
+.skill-gap-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 0.87rem; font-weight: 600;
+  transition: transform var(--transition);
+}
+.skill-gap-card:hover { transform: translateY(-2px); }
+.skill-gap-card.acquired {
+  background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); color: var(--success);
+}
+.skill-gap-card.missing {
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.18); color: var(--danger);
+}
+.skill-gap-card i { font-size: 1rem; flex-shrink: 0; }

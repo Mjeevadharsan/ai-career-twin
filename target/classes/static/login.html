@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login – AI Career Twin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body>
+
+<div class="auth-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<div class="auth-page">
+    <div class="auth-card">
+
+        <!-- Brand -->
+        <a href="/home.html" class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-network-wired"></i></div>
+            <span class="brand-name">AI Career <span>Twin</span></span>
+        </a>
+
+        <!-- Header -->
+        <div class="card-head">
+            <h1>Welcome back</h1>
+            <p>Sign in to access your AI Career Twin dashboard</p>
+        </div>
+
+        <!-- Message box -->
+        <div class="msg-box" id="msg-box"></div>
+
+        <!-- Form -->
+        <form id="login-form" onsubmit="handleLogin(event)" novalidate>
+
+            <!-- Email -->
+            <div class="field" id="fg-email">
+                <label for="login-email">Email or Username</label>
+                <div class="input-box">
+                    <i class="fa-solid fa-envelope fi"></i>
+                    <input type="text" id="login-email" placeholder="Enter your email or username" autocomplete="username" required>
+                </div>
+                <span class="field-err" id="err-email"></span>
+            </div>
+
+            <!-- Password -->
+            <div class="field" id="fg-pwd">
+                <label for="login-pwd">Password</label>
+                <div class="input-box">
+                    <i class="fa-solid fa-lock fi"></i>
+                    <input type="password" id="login-pwd" placeholder="Enter your password" autocomplete="current-password" required>
+                    <button type="button" class="eye-btn" onclick="togglePwd('login-pwd', this)" aria-label="Toggle password">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <span class="field-err" id="err-pwd"></span>
+            </div>
+
+            <!-- Forgot -->
+            <div class="forgot-row">
+                <a href="#">Forgot Password?</a>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn-main" id="login-btn">
+                <span id="btn-text"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login</span>
+                <span id="btn-load" class="hidden"><i class="fa-solid fa-spinner fa-spin"></i> Signing in…</span>
+            </button>
+
+        </form>
+
+        <div class="switch-link">
+            Don't have an account? <a href="/signup.html">Create Account</a>
+            <br><br>
+            <a href="/admin-login.html" style="color:#999;font-size:0.9rem;"><i class="fa-solid fa-shield-halved"></i> Admin Portal</a>
+        </div>
+
+    </div>
+
+    <div class="auth-foot">
+        <p>© 2026 AI Career Twin &nbsp;·&nbsp; B.E. CSE Final Year Project</p>
+    </div>
+</div>
+
+<script>
+function togglePwd(id, btn) {
+    const inp = document.getElementById(id);
+    const ic  = btn.querySelector('i');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        ic.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        inp.type = 'password';
+        ic.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+function showMsg(text, type) {
+    const el = document.getElementById('msg-box');
+    el.textContent = text;
+    el.className = 'msg-box ' + type;
+}
+
+function setLoad(on) {
+    document.getElementById('btn-text').classList.toggle('hidden', on);
+    document.getElementById('btn-load').classList.toggle('hidden', !on);
+    document.getElementById('login-btn').disabled = on;
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+
+    const username = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-pwd').value;
+    const errU = document.getElementById('err-email');
+    const errP = document.getElementById('err-pwd');
+    const fgU  = document.getElementById('fg-email');
+    const fgP  = document.getElementById('fg-pwd');
+
+    let ok = true;
+    errU.textContent = ''; fgU.classList.remove('invalid','valid');
+    errP.textContent = ''; fgP.classList.remove('invalid','valid');
+
+    if (!username) { errU.textContent = 'Please enter your email or username.'; fgU.classList.add('invalid'); ok = false; }
+    if (!password) { errP.textContent = 'Please enter your password.';          fgP.classList.add('invalid'); ok = false; }
+    if (!ok) return;
+
+    setLoad(true);
+
+    try {
+        const res  = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showMsg(data.error || 'Invalid credentials. Please try again.', 'error');
+            fgU.classList.add('invalid'); fgP.classList.add('invalid');
+        } else {
+            showMsg('Login successful! Redirecting…', 'success');
+            setTimeout(() => { window.location.href = '/'; }, 1200);
+        }
+    } catch {
+        showMsg('Could not connect to server. Please try again.', 'error');
+    } finally {
+        setLoad(false);
+    }
+}
+</script>
+</body>
+</html>
