@@ -146,7 +146,13 @@ async function handleLogin(e) {
             fgU.classList.add('invalid'); fgP.classList.add('invalid');
         } else {
             showMsg('Login successful! Redirecting…', 'success');
-            setTimeout(() => { window.location.href = '/'; }, 1200);
+            setTimeout(() => { 
+                if (data.role === 'ADMIN') {
+                    window.location.href = '/admin-dashboard.html';
+                } else {
+                    window.location.href = '/'; 
+                }
+            }, 1200);
         }
     } catch {
         showMsg('Could not connect to server. Please try again.', 'error');

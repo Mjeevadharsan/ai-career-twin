@@ -64,7 +64,7 @@ public class DatabaseService {
                 "interests TEXT, " +
                 "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE" +
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-                
+
         String createLoginHistoryTable = "CREATE TABLE IF NOT EXISTS login_history (" +
                 "id INT AUTO_INCREMENT PRIMARY KEY, " +
                 "user_id INT, " +
@@ -73,7 +73,7 @@ public class DatabaseService {
                 "user_agent TEXT, " +
                 "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE" +
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-                
+
         String createActivityLogTable = "CREATE TABLE IF NOT EXISTS activity_log (" +
                 "id INT AUTO_INCREMENT PRIMARY KEY, " +
                 "user_id INT, " +
@@ -84,12 +84,12 @@ public class DatabaseService {
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
 
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
             stmt.execute(createUsersTable);
             stmt.execute(createProfilesTable);
             stmt.execute(createLoginHistoryTable);
             stmt.execute(createActivityLogTable);
-            
+
             // Create default admin account if not exists
             String checkAdmin = "SELECT COUNT(*) as count FROM users WHERE role = 'ADMIN'";
             ResultSet rs = stmt.executeQuery(checkAdmin);
@@ -104,8 +104,9 @@ public class DatabaseService {
                     // Ignore if it already exists as a student
                 }
             }
-            
-            // Forcefully ensure the admin account has the ADMIN role if they registered manually
+
+            // Forcefully ensure the admin account has the ADMIN role if they registered
+            // manually
             String forceAdmin = "UPDATE users SET role = 'ADMIN' WHERE username = 'admin@careertwin.com'";
             try (PreparedStatement pstmt = conn.prepareStatement(forceAdmin)) {
                 pstmt.executeUpdate();
@@ -140,23 +141,24 @@ public class DatabaseService {
     public boolean registerUser(String username, String password, String fullName, String mobile, String role) {
         String sql = "INSERT INTO users (username, password, full_name, mobile, role) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
             pstmt.setString(2, hashPassword(password));
             pstmt.setString(3, fullName);
             pstmt.setString(4, mobile);
             pstmt.setString(5, role != null ? role : "STUDENT");
             pstmt.executeUpdate();
-            
+
             // Log registration activity
-            logActivity(null, username, "REGISTRATION", "New student registered: " + (fullName != null && !fullName.trim().isEmpty() ? fullName : username));
+            logActivity(null, username, "REGISTRATION", "New student registered: "
+                    + (fullName != null && !fullName.trim().isEmpty() ? fullName : username));
             return true;
         } catch (SQLException e) {
             System.err.println("Failed to register user: " + e.getMessage());
             return false;
         }
     }
-    
+
     // Backward compatibility
     public boolean registerUser(String username, String password) {
         return registerUser(username, password, null, null, "STUDENT");
@@ -166,42 +168,45 @@ public class DatabaseService {
     public Map<String, Object> loginUser(String username, String password) {
         String sql = "SELECT id, username, role, full_name FROM users WHERE username = ? AND password = ?";
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
             pstmt.setString(2, hashPassword(password));
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     int userId = rs.getInt("id");
-                    
+
                     // Update last login and login count
                     String updateSql = "UPDATE users SET last_login = NOW(), login_count = login_count + 1 WHERE id = ?";
                     try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
                         updateStmt.setInt(1, userId);
                         updateStmt.executeUpdate();
                     }
-                    
+
                     // Record login history
                     String historySql = "INSERT INTO login_history (user_id) VALUES (?)";
                     try (PreparedStatement historyStmt = conn.prepareStatement(historySql)) {
                         historyStmt.setInt(1, userId);
                         historyStmt.executeUpdate();
                     }
-                    
+
                     // Log login activity
                     String role = rs.getString("role");
-                    
-                    // HARD OVERRIDE: If the username is admin or admin@careertwin.com, force it to be ADMIN
+
+                    // HARD OVERRIDE: If the username is admin or admin@careertwin.com, force it to
+                    // be ADMIN
                     if ("admin@careertwin.com".equalsIgnoreCase(username) || "admin".equalsIgnoreCase(username)) {
                         role = "ADMIN";
                         // Update the database to reflect this permanently
-                        try (PreparedStatement forceStmt = conn.prepareStatement("UPDATE users SET role = 'ADMIN' WHERE id = ?")) {
+                        try (PreparedStatement forceStmt = conn
+                                .prepareStatement("UPDATE users SET role = 'ADMIN' WHERE id = ?")) {
                             forceStmt.setInt(1, userId);
                             forceStmt.executeUpdate();
                         }
                     }
-                    
-                    logActivity(userId, rs.getString("username"), "LOGIN", role.equals("ADMIN") ? "Admin logged in" : "Student logged in");
-                    
+
+                    logActivity(userId, rs.getString("username"), "LOGIN",
+                            role.equals("ADMIN") ? "Admin logged in" : "Student logged in");
+
                     Map<String, Object> userInfo = new HashMap<>();
                     userInfo.put("id", userId);
                     userInfo.put("username", rs.getString("username"));
@@ -215,17 +220,17 @@ public class DatabaseService {
         }
         return null;
     }
-    
+
     // Get all students for admin dashboard
     public List<Map<String, Object>> getAllStudents() {
         List<Map<String, Object>> students = new ArrayList<>();
         String sql = "SELECT u.id, u.username, u.full_name, u.mobile, u.created_at, u.last_login, u.login_count, " +
-                     "p.cgpa, p.projects, p.certifications FROM users u " +
-                     "LEFT JOIN profiles p ON u.id = p.user_id WHERE u.role = 'STUDENT' ORDER BY u.created_at DESC";
-        
+                "p.cgpa, p.projects, p.certifications FROM users u " +
+                "LEFT JOIN profiles p ON u.id = p.user_id WHERE u.role = 'STUDENT' ORDER BY u.created_at DESC";
+
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 Map<String, Object> student = new HashMap<>();
                 student.put("id", rs.getInt("id"));
@@ -246,16 +251,16 @@ public class DatabaseService {
         }
         return students;
     }
-    
+
     // Get login history for admin
     public List<Map<String, Object>> getLoginHistory(int limit) {
         List<Map<String, Object>> history = new ArrayList<>();
         String sql = "SELECT lh.login_time, u.username, u.full_name, u.role " +
-                     "FROM login_history lh JOIN users u ON lh.user_id = u.id " +
-                     "ORDER BY lh.login_time DESC LIMIT ?";
-        
+                "FROM login_history lh JOIN users u ON lh.user_id = u.id " +
+                "ORDER BY lh.login_time DESC LIMIT ?";
+
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, limit);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -272,42 +277,48 @@ public class DatabaseService {
         }
         return history;
     }
-    
+
     // Get dashboard stats for admin
     public Map<String, Object> getAdminStats() {
         Map<String, Object> stats = new HashMap<>();
-        
+
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
-            
+                Statement stmt = conn.createStatement()) {
+
             // Total students
             ResultSet rs1 = stmt.executeQuery("SELECT COUNT(*) as count FROM users WHERE role = 'STUDENT'");
-            if (rs1.next()) stats.put("total_students", rs1.getInt("count"));
-            
+            if (rs1.next())
+                stats.put("total_students", rs1.getInt("count"));
+
             // Students with profiles
             ResultSet rs2 = stmt.executeQuery("SELECT COUNT(*) as count FROM profiles");
-            if (rs2.next()) stats.put("students_with_profiles", rs2.getInt("count"));
-            
+            if (rs2.next())
+                stats.put("students_with_profiles", rs2.getInt("count"));
+
             // Total logins today
-            ResultSet rs3 = stmt.executeQuery("SELECT COUNT(*) as count FROM login_history WHERE DATE(login_time) = CURDATE()");
-            if (rs3.next()) stats.put("logins_today", rs3.getInt("count"));
-            
+            ResultSet rs3 = stmt
+                    .executeQuery("SELECT COUNT(*) as count FROM login_history WHERE DATE(login_time) = CURDATE()");
+            if (rs3.next())
+                stats.put("logins_today", rs3.getInt("count"));
+
             // New signups today
-            ResultSet rs4 = stmt.executeQuery("SELECT COUNT(*) as count FROM users WHERE DATE(created_at) = CURDATE() AND role = 'STUDENT'");
-            if (rs4.next()) stats.put("signups_today", rs4.getInt("count"));
-            
+            ResultSet rs4 = stmt.executeQuery(
+                    "SELECT COUNT(*) as count FROM users WHERE DATE(created_at) = CURDATE() AND role = 'STUDENT'");
+            if (rs4.next())
+                stats.put("signups_today", rs4.getInt("count"));
+
         } catch (SQLException e) {
             System.err.println("Failed to fetch admin stats: " + e.getMessage());
         }
         return stats;
     }
-    
+
     // Delete user (admin only)
     public boolean deleteUser(int userId) {
         String username = "";
         String fetchSql = "SELECT username FROM users WHERE id = ?";
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(fetchSql)) {
+                PreparedStatement pstmt = conn.prepareStatement(fetchSql)) {
             pstmt.setInt(1, userId);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -319,27 +330,29 @@ public class DatabaseService {
         }
 
         try (Connection conn = getConnection()) {
-            // Delete profile first (also handled by ON DELETE CASCADE, but explicit is safer)
+            // Delete profile first (also handled by ON DELETE CASCADE, but explicit is
+            // safer)
             String deleteProfile = "DELETE FROM profiles WHERE user_id = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(deleteProfile)) {
                 pstmt.setInt(1, userId);
                 pstmt.executeUpdate();
             }
-            
+
             // Delete login history
             String deleteHistory = "DELETE FROM login_history WHERE user_id = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(deleteHistory)) {
                 pstmt.setInt(1, userId);
                 pstmt.executeUpdate();
             }
-            
+
             // Delete user
             String deleteUser = "DELETE FROM users WHERE id = ? AND role = 'STUDENT'";
             try (PreparedStatement pstmt = conn.prepareStatement(deleteUser)) {
                 pstmt.setInt(1, userId);
                 int affected = pstmt.executeUpdate();
                 if (affected > 0) {
-                    logActivity(null, "system", "USER_DELETION", "Deleted student account: " + username + " (ID: " + userId + ")");
+                    logActivity(null, "system", "USER_DELETION",
+                            "Deleted student account: " + username + " (ID: " + userId + ")");
                     return true;
                 }
                 return false;
@@ -361,7 +374,8 @@ public class DatabaseService {
 
         // MySQL upsert using INSERT ... ON DUPLICATE KEY UPDATE
         String sql = "INSERT INTO profiles " +
-                "(user_id, cgpa, projects, certifications, apt_analytical, apt_coding, apt_communication, apt_problem_solving, skills, interests) " +
+                "(user_id, cgpa, projects, certifications, apt_analytical, apt_coding, apt_communication, apt_problem_solving, skills, interests) "
+                +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                 "ON DUPLICATE KEY UPDATE " +
                 "cgpa=VALUES(cgpa), projects=VALUES(projects), certifications=VALUES(certifications), " +
@@ -370,7 +384,7 @@ public class DatabaseService {
                 "skills=VALUES(skills), interests=VALUES(interests)";
 
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
             pstmt.setDouble(2, cgpa);
             pstmt.setInt(3, projects);
@@ -382,19 +396,20 @@ public class DatabaseService {
             pstmt.setString(9, skillsStr);
             pstmt.setString(10, interestsStr);
             pstmt.executeUpdate();
-            
+
             // Log profile activity
             String username = "";
             try (PreparedStatement uPstmt = conn.prepareStatement("SELECT username FROM users WHERE id = ?")) {
                 uPstmt.setInt(1, userId);
                 try (ResultSet rs = uPstmt.executeQuery()) {
-                    if (rs.next()) username = rs.getString("username");
+                    if (rs.next())
+                        username = rs.getString("username");
                 }
             } catch (SQLException e) {
                 System.err.println("Failed to fetch username for profile log: " + e.getMessage());
             }
             logActivity(userId, username, "PROFILE_UPDATE", "Updated career assessment profile (CGPA: " + cgpa + ")");
-            
+
             return true;
         } catch (SQLException e) {
             System.err.println("Failed to save profile: " + e.getMessage());
@@ -406,7 +421,7 @@ public class DatabaseService {
     public Map<String, Object> getProfile(int userId) {
         String sql = "SELECT * FROM profiles WHERE user_id = ?";
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -418,7 +433,7 @@ public class DatabaseService {
                     profile.put("apt_coding", rs.getDouble("apt_coding"));
                     profile.put("apt_communication", rs.getDouble("apt_communication"));
                     profile.put("apt_problem_solving", rs.getDouble("apt_problem_solving"));
-                    
+
                     String skillsStr = rs.getString("skills");
                     Set<String> skills = new HashSet<>();
                     if (skillsStr != null && !skillsStr.trim().isEmpty()) {
@@ -432,7 +447,7 @@ public class DatabaseService {
                         interests.addAll(Arrays.asList(interestsStr.split(",")));
                     }
                     profile.put("interests", interests);
-                    
+
                     return profile;
                 }
             }
@@ -446,7 +461,7 @@ public class DatabaseService {
     public void logActivity(Integer userId, String username, String action, String details) {
         String sql = "INSERT INTO activity_log (user_id, username, action, details) VALUES (?, ?, ?, ?)";
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             if (userId != null) {
                 pstmt.setInt(1, userId);
             } else {
@@ -466,7 +481,7 @@ public class DatabaseService {
         List<Map<String, Object>> activities = new ArrayList<>();
         String sql = "SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT ?";
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, limit);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
