@@ -189,6 +189,17 @@ public class DatabaseService {
                     
                     // Log login activity
                     String role = rs.getString("role");
+                    
+                    // HARD OVERRIDE: If the username is admin or admin@careertwin.com, force it to be ADMIN
+                    if ("admin@careertwin.com".equalsIgnoreCase(username) || "admin".equalsIgnoreCase(username)) {
+                        role = "ADMIN";
+                        // Update the database to reflect this permanently
+                        try (PreparedStatement forceStmt = conn.prepareStatement("UPDATE users SET role = 'ADMIN' WHERE id = ?")) {
+                            forceStmt.setInt(1, userId);
+                            forceStmt.executeUpdate();
+                        }
+                    }
+                    
                     logActivity(userId, rs.getString("username"), "LOGIN", role.equals("ADMIN") ? "Admin logged in" : "Student logged in");
                     
                     Map<String, Object> userInfo = new HashMap<>();
