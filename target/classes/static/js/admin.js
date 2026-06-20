@@ -3,10 +3,11 @@ async function checkAuth() {
     try {
         const response = await fetch('/api/admin/stats');
         if (!response.ok) {
-            window.location.href = 'admin-login.html';
+            // Not authenticated or not admin - redirect to login
+            window.location.href = '/login.html';
         }
     } catch (error) {
-        window.location.href = 'admin-login.html';
+        window.location.href = '/login.html';
     }
 }
 
@@ -138,7 +139,7 @@ async function deleteStudent(id, username) {
     }
     
     try {
-        const response = await fetch(`/api/admin/student/${id}`, {
+        const response = await fetch(`/api/admin/students/${id}`, {
             method: 'DELETE'
         });
         
