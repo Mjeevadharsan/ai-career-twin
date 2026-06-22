@@ -25,13 +25,7 @@ public class DatabaseService {
 
     @PostConstruct
     public void init() {
-        // Initialize MySQL driver & database schemas
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            initDb();
-        } catch (ClassNotFoundException e) {
-            System.err.println("MySQL JDBC Driver not found: " + e.getMessage());
-        }
+        initDb();
     }
 
     private Connection getConnection() throws SQLException {
@@ -49,7 +43,7 @@ public class DatabaseService {
                 "last_login DATETIME, " +
                 "login_count INT DEFAULT 0, " +
                 "created_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
-                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                ");";
 
         String createProfilesTable = "CREATE TABLE IF NOT EXISTS profiles (" +
                 "user_id INT PRIMARY KEY, " +
@@ -60,28 +54,28 @@ public class DatabaseService {
                 "apt_coding DOUBLE, " +
                 "apt_communication DOUBLE, " +
                 "apt_problem_solving DOUBLE, " +
-                "skills TEXT, " +
-                "interests TEXT, " +
+                "skills VARCHAR(2000), " +
+                "interests VARCHAR(2000), " +
                 "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE" +
-                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                ");";
 
         String createLoginHistoryTable = "CREATE TABLE IF NOT EXISTS login_history (" +
                 "id INT AUTO_INCREMENT PRIMARY KEY, " +
                 "user_id INT, " +
                 "login_time DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 "ip_address VARCHAR(50), " +
-                "user_agent TEXT, " +
+                "user_agent VARCHAR(500), " +
                 "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE" +
-                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                ");";
 
         String createActivityLogTable = "CREATE TABLE IF NOT EXISTS activity_log (" +
                 "id INT AUTO_INCREMENT PRIMARY KEY, " +
                 "user_id INT, " +
                 "username VARCHAR(255), " +
                 "action VARCHAR(100), " +
-                "details TEXT, " +
+                "details VARCHAR(2000), " +
                 "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP" +
-                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                ");";
 
         try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement()) {
@@ -394,16 +388,9 @@ public class DatabaseService {
         String skillsStr = String.join(",", skills);
         String interestsStr = String.join(",", interests);
 
-        // MySQL upsert using INSERT ... ON DUPLICATE KEY UPDATE
-        String sql = "INSERT INTO profiles " +
-                "(user_id, cgpa, projects, certifications, apt_analytical, apt_coding, apt_communication, apt_problem_solving, skills, interests) "
-                +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE " +
-                "cgpa=VALUES(cgpa), projects=VALUES(projects), certifications=VALUES(certifications), " +
-                "apt_analytical=VALUES(apt_analytical), apt_coding=VALUES(apt_coding), " +
-                "apt_communication=VALUES(apt_communication), apt_problem_solving=VALUES(apt_problem_solving), " +
-                "skills=VALUES(skills), interests=VALUES(interests)";
+        // H2 upsert using MERGE INTO
+        String sql = "MERGE INTO profiles (user_id, cgpa, projects, certifications, apt_analytical, apt_coding, apt_communication, apt_problem_solving, skills, interests) " +
+                "KEY (user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

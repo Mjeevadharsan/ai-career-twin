@@ -1,17 +1,14 @@
 services:
-  # Spring Boot Backend
+  # Spring Boot Backend (uses H2 embedded database - no external DB needed)
   - type: web
     name: ai-career-twin
     env: java
     buildCommand: mvn clean package -DskipTests
     startCommand: java -jar target/twin-1.0.0.jar
-    envVars:
-      - key: SPRING_DATASOURCE_URL
-        sync: false
-      - key: SPRING_DATASOURCE_USERNAME
-        sync: false
-      - key: SPRING_DATASOURCE_PASSWORD
-        sync: false
+    disk:
+      name: h2-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
 
   # React Frontend
   - type: web

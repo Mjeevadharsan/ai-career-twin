@@ -137,12 +137,14 @@ async function handleSignup(event) {
 
     const username = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
+    const fullName = document.getElementById('reg-name').value.trim();
+    const mobile   = document.getElementById('reg-mobile').value.trim();
 
     try {
         const res = await fetch('/api/register', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ username, password }),
+            body:    JSON.stringify({ username, password, fullName, mobile }),
         });
 
         const data = await res.json();
