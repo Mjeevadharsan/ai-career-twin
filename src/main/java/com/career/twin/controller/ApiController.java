@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
+import java.sql.SQLException;
 
 @RestController
 @RequestMapping("/api")
@@ -48,11 +49,15 @@ public class ApiController {
             return ResponseEntity.badRequest().body(Map.of("error", "Username must be >= 3 chars, password >= 4 chars."));
         }
 
-        boolean success = databaseService.registerUser(username, password, fullName, mobile, "STUDENT");
-        if (success) {
+        try {
+            databaseService.registerUser(username, password, fullName, mobile, "STUDENT");
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "User registered successfully!"));
-        } else {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Username already exists."));
+        } catch (SQLException e) {
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && (errorMsg.contains("Unique index") || errorMsg.contains("duplicate") || errorMsg.contains("violates unique constraint") || errorMsg.contains("PRIMARY KEY"))) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Username already exists."));
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Database error: " + errorMsg));
         }
     }
 

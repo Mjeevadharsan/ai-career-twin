@@ -132,7 +132,7 @@ public class DatabaseService {
     }
 
     // Register user with role
-    public boolean registerUser(String username, String password, String fullName, String mobile, String role) {
+    public void registerUser(String username, String password, String fullName, String mobile, String role) throws SQLException {
         String sql = "INSERT INTO users (username, password, full_name, mobile, role) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -146,16 +146,12 @@ public class DatabaseService {
             // Log registration activity
             logActivity(null, username, "REGISTRATION", "New student registered: "
                     + (fullName != null && !fullName.trim().isEmpty() ? fullName : username));
-            return true;
-        } catch (SQLException e) {
-            System.err.println("Failed to register user: " + e.getMessage());
-            return false;
         }
     }
 
     // Backward compatibility
-    public boolean registerUser(String username, String password) {
-        return registerUser(username, password, null, null, "STUDENT");
+    public void registerUser(String username, String password) throws SQLException {
+        registerUser(username, password, null, null, "STUDENT");
     }
 
     // Login user - Returns user info map or null
