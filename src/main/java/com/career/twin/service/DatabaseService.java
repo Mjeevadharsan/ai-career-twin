@@ -384,9 +384,15 @@ public class DatabaseService {
         String skillsStr = String.join(",", skills);
         String interestsStr = String.join(",", interests);
 
-        // H2 upsert using MERGE INTO
-        String sql = "MERGE INTO profiles (user_id, cgpa, projects, certifications, apt_analytical, apt_coding, apt_communication, apt_problem_solving, skills, interests) " +
-                "KEY (user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        // MySQL/H2 upsert using INSERT ... ON DUPLICATE KEY UPDATE
+        String sql = "INSERT INTO profiles " +
+                "(user_id, cgpa, projects, certifications, apt_analytical, apt_coding, apt_communication, apt_problem_solving, skills, interests) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE " +
+                "cgpa=VALUES(cgpa), projects=VALUES(projects), certifications=VALUES(certifications), " +
+                "apt_analytical=VALUES(apt_analytical), apt_coding=VALUES(apt_coding), " +
+                "apt_communication=VALUES(apt_communication), apt_problem_solving=VALUES(apt_problem_solving), " +
+                "skills=VALUES(skills), interests=VALUES(interests)";
 
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
