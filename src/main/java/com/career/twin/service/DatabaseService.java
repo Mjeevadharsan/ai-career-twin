@@ -109,6 +109,7 @@ public class DatabaseService {
             System.out.println("MySQL tables successfully initialized.");
         } catch (SQLException e) {
             System.err.println("Database initialization failed: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

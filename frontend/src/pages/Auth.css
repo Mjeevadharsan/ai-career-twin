@@ -54,7 +54,123 @@
 
 .auth-foot { position:relative; z-index:1; margin-top:24px; font-size:0.73rem; color:var(--gray-600); text-align:center; }
 
+/* ─── Country Code Selector ─── */
+.mobile-row {
+  display: flex; gap: 8px; align-items: flex-start;
+}
+
+.country-selector {
+  position: relative; flex-shrink: 0;
+}
+
+.country-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 12px 10px; height: 46px;
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 8px; color: var(--text-primary);
+  cursor: pointer; font-size: 0.88rem; white-space: nowrap;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.country-btn:hover { border-color: rgba(255,255,255,0.2); }
+.country-btn:focus { border-color: var(--blue-400); box-shadow: 0 0 0 3px rgba(96,165,250,0.15); outline: none; }
+
+.country-flag { font-size: 1.2rem; line-height: 1; }
+.country-code { font-weight: 600; font-size: 0.82rem; color: var(--text-secondary); }
+
+.country-arrow {
+  font-size: 0.6rem; color: var(--gray-500);
+  transition: transform 0.25s ease;
+}
+.country-arrow.open { transform: rotate(180deg); }
+
+.field.invalid .country-btn { border-color: var(--danger); }
+.field.valid   .country-btn { border-color: var(--success); }
+
+/* Dropdown panel */
+.country-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  width: 260px; max-height: 280px;
+  background: rgba(16,22,40,0.97);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px; z-index: 100;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  overflow: hidden;
+  animation: dropIn 0.2s ease;
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.country-search-wrap {
+  position: relative; padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.country-search-icon {
+  position: absolute; left: 22px; top: 50%; transform: translateY(-50%);
+  font-size: 0.75rem; color: var(--gray-500); pointer-events: none;
+}
+.country-search {
+  width: 100%; padding: 8px 10px 8px 28px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; color: var(--text-primary);
+  font-size: 0.82rem; outline: none;
+  transition: border-color var(--transition);
+}
+.country-search::placeholder { color: var(--gray-600); }
+.country-search:focus { border-color: var(--blue-400); }
+
+.country-list {
+  list-style: none; margin: 0; padding: 6px 0;
+  max-height: 210px; overflow-y: auto;
+}
+.country-list::-webkit-scrollbar { width: 5px; }
+.country-list::-webkit-scrollbar-track { background: transparent; }
+.country-list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12); border-radius: 10px;
+}
+
+.country-option {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer;
+  transition: background 0.15s;
+}
+.country-option:hover { background: rgba(59,130,246,0.12); }
+.country-option.selected { background: rgba(59,130,246,0.18); }
+
+.country-name {
+  flex: 1; font-size: 0.82rem; color: var(--text-primary); font-weight: 500;
+}
+.country-dial {
+  font-size: 0.78rem; color: var(--gray-400); font-weight: 600;
+}
+.country-no-result {
+  padding: 14px; text-align: center;
+  font-size: 0.8rem; color: var(--gray-500);
+}
+
+/* Mobile input takes remaining space */
+.mobile-input-wrap { flex: 1; }
+.mobile-input-wrap input {
+  width: 100%; padding: 13px 14px;
+  background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 8px; color: var(--text-primary); font-size: 0.92rem; outline: none;
+  letter-spacing: 0.06em;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.mobile-input-wrap input::placeholder { color: var(--gray-600); letter-spacing: 0; }
+.mobile-input-wrap input:focus {
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(96,165,250,0.15);
+}
+.field.invalid .mobile-input-wrap input { border-color: var(--danger); }
+.field.valid   .mobile-input-wrap input { border-color: var(--success); }
+
 @media(max-width:480px) {
   .auth-card { padding:28px 18px; }
   .auth-head h1 { font-size:1.35rem; }
+  .country-dropdown { width: 230px; }
+  .mobile-row { gap: 6px; }
 }
