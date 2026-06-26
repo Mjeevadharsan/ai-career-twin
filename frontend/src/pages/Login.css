@@ -78,17 +78,7 @@
     0 0 60px rgba(37, 99, 235, 0.07);
 }
 
-/* Gradient top border accent */
-.login-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
-  border-radius: 24px 24px 0 0;
-}
+
 
 /* --- Brand --- */
 .login-brand {
