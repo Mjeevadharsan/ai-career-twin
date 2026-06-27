@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import api from '../services/api'
 import logo from '../assets/logo.png'
 import './Login.css'
 
@@ -32,6 +33,9 @@ const COUNTRY_CODES = [
   { code: '+34',  flag: '🇪🇸', name: 'Spain' },
 ]
 
+const OTP_LENGTH = 6
+const OTP_EXPIRY_SECS = 300 // 5 minutes
+
 export default function Login() {
   const { login, register } = useAuth()
   const navigate  = useNavigate()
@@ -57,6 +61,16 @@ export default function Login() {
   const [searchQuery, setSearchQuery] = useState('')
   const dropdownRef = useRef(null)
 
+  // ──── OTP State ────
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpValues, setOtpValues] = useState(Array(OTP_LENGTH).fill(''))
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [otpTimer, setOtpTimer] = useState(0)
+  const [verificationToken, setVerificationToken] = useState(null)
+  const [otpVerified, setOtpVerified] = useState(false)
+  const otpRefs = useRef([])
+  const timerRef = useRef(null)
+
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -68,6 +82,22 @@ export default function Login() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // OTP countdown timer
+  useEffect(() => {
+    if (otpTimer > 0) {
+      timerRef.current = setInterval(() => {
+        setOtpTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+    return () => clearInterval(timerRef.current)
+  }, [otpTimer])
 
   const filteredCountries = COUNTRY_CODES.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -93,6 +123,22 @@ export default function Login() {
     setMsg(null)
     setErrors({})
   }, [searchParams])
+
+  // Reset OTP state when switching modes
+  useEffect(() => {
+    if (mode === 'login') {
+      resetOtpState()
+    }
+  }, [mode])
+
+  const resetOtpState = () => {
+    setOtpSent(false)
+    setOtpValues(Array(OTP_LENGTH).fill(''))
+    setOtpTimer(0)
+    setVerificationToken(null)
+    setOtpVerified(false)
+    clearInterval(timerRef.current)
+  }
 
   const handleTabChange = (targetMode) => {
     setSearchParams({ mode: targetMode })
@@ -160,27 +206,138 @@ export default function Login() {
     }
   }
 
-  // Handle Signup Submit
-  const handleSignupSubmit = async (ev) => {
+  // ──── OTP: Send OTP ────
+  const handleSendOtp = async (ev) => {
     ev.preventDefault()
     if (!validateSignup()) return
-    setLoading(true)
+    setOtpLoading(true)
     setMsg(null)
-    const fullMobile = `${selectedCountry.code} ${regForm.mobile}`
+
     try {
-      await register(regForm.email.trim(), regForm.password, regForm.name.trim(), fullMobile.trim())
-      setMsg({ type: 'success', text: '✓ Account created successfully! Switching to login…' })
-      
+      await api.post('/send-otp', { email: regForm.email.trim() })
+      setOtpSent(true)
+      setOtpValues(Array(OTP_LENGTH).fill(''))
+      setOtpTimer(OTP_EXPIRY_SECS)
+      setMsg({ type: 'success', text: `✓ Verification code sent to ${regForm.email}` })
+      // Focus first OTP input after render
+      setTimeout(() => otpRefs.current[0]?.focus(), 100)
+    } catch (err) {
+      setMsg({ type: 'error', text: err.response?.data?.error || 'Failed to send verification code.' })
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  // ──── OTP: Handle digit input ────
+  const handleOtpChange = (index, value) => {
+    // Only accept digits
+    const digit = value.replace(/\D/g, '').slice(-1)
+    const newValues = [...otpValues]
+    newValues[index] = digit
+    setOtpValues(newValues)
+
+    // Auto-focus next input
+    if (digit && index < OTP_LENGTH - 1) {
+      otpRefs.current[index + 1]?.focus()
+    }
+  }
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault()
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH)
+    if (pasted.length > 0) {
+      const newValues = Array(OTP_LENGTH).fill('')
+      for (let i = 0; i < pasted.length; i++) {
+        newValues[i] = pasted[i]
+      }
+      setOtpValues(newValues)
+      // Focus the input after last pasted digit
+      const focusIdx = Math.min(pasted.length, OTP_LENGTH - 1)
+      otpRefs.current[focusIdx]?.focus()
+    }
+  }
+
+  // ──── OTP: Verify & Register ────
+  const handleVerifyAndRegister = async () => {
+    const otpCode = otpValues.join('')
+    if (otpCode.length !== OTP_LENGTH) {
+      setMsg({ type: 'error', text: 'Please enter the complete 6-digit code.' })
+      return
+    }
+
+    setOtpLoading(true)
+    setMsg(null)
+
+    try {
+      // Step 1: Verify OTP
+      const verifyRes = await api.post('/verify-otp', {
+        email: regForm.email.trim(),
+        otp: otpCode
+      })
+
+      if (!verifyRes.data.verified) {
+        setMsg({ type: 'error', text: verifyRes.data.error || 'Invalid OTP.' })
+        setOtpLoading(false)
+        return
+      }
+
+      const token = verifyRes.data.token
+      setVerificationToken(token)
+      setOtpVerified(true)
+
+      // Step 2: Register with verification token
+      const fullMobile = `${selectedCountry.code} ${regForm.mobile}`
+      await register(
+        regForm.email.trim(),
+        regForm.password,
+        regForm.name.trim(),
+        fullMobile.trim(),
+        token
+      )
+
+      setMsg({ type: 'success', text: '✓ Email verified & account created! Switching to login…' })
+
       // Auto-prefill and switch back to login
       setLoginForm({ username: regForm.email.trim(), password: regForm.password })
       setTimeout(() => {
+        resetOtpState()
         setSearchParams({ mode: 'login' })
-      }, 1800)
+      }, 2000)
     } catch (err) {
-      setMsg({ type: 'error', text: err.response?.data?.error || 'Registration failed. Please try again.' })
+      setMsg({ type: 'error', text: err.response?.data?.error || 'Verification failed. Please try again.' })
     } finally {
-      setLoading(false)
+      setOtpLoading(false)
     }
+  }
+
+  // ──── OTP: Resend ────
+  const handleResendOtp = async () => {
+    setOtpLoading(true)
+    setMsg(null)
+    try {
+      await api.post('/send-otp', { email: regForm.email.trim() })
+      setOtpValues(Array(OTP_LENGTH).fill(''))
+      setOtpTimer(OTP_EXPIRY_SECS)
+      setMsg({ type: 'success', text: '✓ New verification code sent!' })
+      setTimeout(() => otpRefs.current[0]?.focus(), 100)
+    } catch (err) {
+      setMsg({ type: 'error', text: err.response?.data?.error || 'Failed to resend code.' })
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  // Format timer mm:ss
+  const formatTimer = (secs) => {
+    const m = Math.floor(secs / 60)
+    const s = secs % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
   }
 
   const sl = strengthLevels[strength]
@@ -225,11 +382,19 @@ export default function Login() {
 
         {/* Header */}
         <div className="login-head">
-          <h1>{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
+          <h1>
+            {mode === 'login'
+              ? 'Welcome back'
+              : otpSent
+                ? 'Verify your email'
+                : 'Create your account'}
+          </h1>
           <p>
             {mode === 'login'
               ? 'Sign in to continue — students and admins use the same portal'
-              : 'Start your AI-powered career journey today'}
+              : otpSent
+                ? <>Enter the 6-digit code sent to <strong style={{ color: '#60a5fa' }}>{regForm.email}</strong></>
+                : 'Start your AI-powered career journey today'}
           </p>
         </div>
 
@@ -299,8 +464,8 @@ export default function Login() {
         )}
 
         {/* Signup Form */}
-        {mode === 'signup' && (
-          <form onSubmit={handleSignupSubmit} className="auth-form-animate" noValidate>
+        {mode === 'signup' && !otpSent && (
+          <form onSubmit={handleSendOtp} className="auth-form-animate" noValidate>
             {/* Full Name */}
             <div className={`login-field ${errors.name ? 'invalid' : regForm.name ? 'valid' : ''}`}>
               <label>Full Name</label>
@@ -458,21 +623,93 @@ export default function Login() {
             </label>
             {errors.terms && <span className="login-field-err" style={{ display: 'block', marginTop: -10, marginBottom: 10 }}>{errors.terms}</span>}
 
-            <button type="submit" className="login-btn" disabled={loading}>
-              {loading ? (
-                <><i className="fa-solid fa-spinner fa-spin" /> Creating…</>
+            <button type="submit" className="login-btn" disabled={otpLoading}>
+              {otpLoading ? (
+                <><i className="fa-solid fa-spinner fa-spin" /> Sending verification code…</>
               ) : (
-                <><i className="fa-solid fa-circle-nodes" /> Create Account</>
+                <><i className="fa-solid fa-paper-plane" /> Send Verification Code</>
               )}
             </button>
           </form>
         )}
 
+        {/* ──── OTP Verification Section ──── */}
+        {mode === 'signup' && otpSent && !otpVerified && (
+          <div className="otp-section auth-form-animate">
+            {/* OTP digit inputs */}
+            <div className="otp-inputs-row">
+              {otpValues.map((val, i) => (
+                <input
+                  key={i}
+                  ref={el => otpRefs.current[i] = el}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  className={`otp-digit-input ${val ? 'filled' : ''}`}
+                  value={val}
+                  onChange={e => handleOtpChange(i, e.target.value)}
+                  onKeyDown={e => handleOtpKeyDown(i, e)}
+                  onPaste={i === 0 ? handleOtpPaste : undefined}
+                  disabled={otpLoading}
+                  autoFocus={i === 0}
+                />
+              ))}
+            </div>
+
+            {/* Timer */}
+            <div className="otp-timer-row">
+              {otpTimer > 0 ? (
+                <span className={`otp-timer ${otpTimer < 60 ? 'otp-timer-warn' : ''}`}>
+                  <i className="fa-solid fa-clock" /> Code expires in {formatTimer(otpTimer)}
+                </span>
+              ) : (
+                <span className="otp-timer otp-timer-expired">
+                  <i className="fa-solid fa-clock" /> Code expired
+                </span>
+              )}
+            </div>
+
+            {/* Verify button */}
+            <button
+              type="button"
+              className="login-btn"
+              onClick={handleVerifyAndRegister}
+              disabled={otpLoading || otpValues.join('').length !== OTP_LENGTH}
+            >
+              {otpLoading ? (
+                <><i className="fa-solid fa-spinner fa-spin" /> Verifying…</>
+              ) : (
+                <><i className="fa-solid fa-shield-halved" /> Verify & Create Account</>
+              )}
+            </button>
+
+            {/* Resend & Change email */}
+            <div className="otp-actions-row">
+              <button
+                type="button"
+                className="otp-resend-btn"
+                onClick={handleResendOtp}
+                disabled={otpLoading || otpTimer > 0}
+              >
+                <i className="fa-solid fa-rotate-right" /> Resend Code
+              </button>
+              <button
+                type="button"
+                className="otp-change-email-btn"
+                onClick={() => { resetOtpState(); setMsg(null) }}
+                disabled={otpLoading}
+              >
+                <i className="fa-solid fa-pen" /> Change Email
+              </button>
+            </div>
+          </div>
+        )}
+
         <p className="login-switch">
           {mode === 'login' ? (
-            <>Don't have an account? <a href="javascript:void(0)" onClick={() => handleTabChange('signup')}>Create Account</a></>
+            <>Don't have an account? <button type="button" onClick={() => handleTabChange('signup')}>Create Account</button></>
           ) : (
-            <>Already have an account? <a href="javascript:void(0)" onClick={() => handleTabChange('login')}>Login</a></>
+            <>Already have an account? <button type="button" onClick={() => handleTabChange('login')}>Login</button></>
           )}
         </p>
       </div>

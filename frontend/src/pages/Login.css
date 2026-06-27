@@ -349,6 +349,25 @@
   text-decoration: underline;
 }
 
+.login-switch button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #60a5fa;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: color 0.2s;
+  display: inline;
+}
+
+.login-switch button:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+
 /* --- Footer text --- */
 .login-foot {
   position: relative;
@@ -543,4 +562,151 @@
   .login-head h1 { font-size: 1.45rem; }
   .login-field .country-dropdown { width: 230px; }
   .login-field .mobile-row { gap: 6px; }
+  .otp-digit-input { width: 42px; height: 48px; font-size: 1.2rem; }
+  .otp-inputs-row { gap: 8px; }
+}
+
+/* ===== OTP VERIFICATION SECTION ===== */
+
+.otp-section {
+  margin-top: 4px;
+}
+
+/* ─── OTP Digit Inputs ─── */
+.otp-inputs-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.otp-digit-input {
+  width: 50px;
+  height: 58px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  outline: none;
+  caret-color: #60a5fa;
+  transition: all 0.2s ease;
+}
+
+.otp-digit-input:focus {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.06);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.15),
+    0 4px 16px rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.otp-digit-input.filled {
+  border-color: rgba(96, 165, 250, 0.5);
+  background: rgba(59, 130, 246, 0.08);
+  color: #60a5fa;
+}
+
+.otp-digit-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.otp-digit-input::selection {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+/* ─── Timer ─── */
+.otp-timer-row {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.otp-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
+}
+
+.otp-timer i {
+  font-size: 0.8rem;
+}
+
+.otp-timer-warn {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.05);
+  animation: timerPulse 1s ease-in-out infinite;
+}
+
+.otp-timer-expired {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ─── Action Buttons Row ─── */
+.otp-actions-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.otp-resend-btn,
+.otp-change-email-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.otp-resend-btn:hover:not(:disabled) {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.3);
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.otp-change-email-btn:hover:not(:disabled) {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.otp-resend-btn:disabled,
+.otp-change-email-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.otp-resend-btn i,
+.otp-change-email-btn i {
+  font-size: 0.78rem;
 }

@@ -34,9 +34,10 @@ export default function Navbar() {
               <NavLink to="/admin/dashboard" icon="fa-shield-halved" label="Admin Panel" />
             ) : (
               <>
-                <NavLink to="/dashboard"     icon="fa-gauge"          label="Dashboard" />
-                <NavLink to="/prediction"    icon="fa-microchip"      label="Career Prediction" />
-                <NavLink to="/skill-gap"     icon="fa-road"           label="Skill Gap" />
+                <NavLink to="/dashboard"       icon="fa-gauge"          label="Dashboard" />
+                <NavLink to="/profile"         icon="fa-circle-user"    label="Twin Profile" />
+                <NavLink to="/prediction"      icon="fa-microchip"      label="Prediction" />
+                <NavLink to="/skill-gap"       icon="fa-road"           label="Skill Gap" />
                 <NavLink to="/recommendations" icon="fa-graduation-cap" label="Recommendations" />
               </>
             )}
@@ -46,7 +47,7 @@ export default function Navbar() {
         <div className="nav-actions">
           {user ? (
             <>
-              <Link to={isAdmin ? "/admin/dashboard" : "/profile"} className="user-badge">
+              <Link to={isAdmin ? "/admin/dashboard" : "/settings"} className="user-badge" title="Account Settings">
                 <i className={`fa-solid ${isAdmin ? 'fa-user-shield' : 'fa-user-astronaut'}`} />
                 <span>{user.fullName || user.username}</span>
               </Link>

@@ -144,6 +144,24 @@ public class DatabaseService {
         }
     }
 
+    // Check if a user with the given username/email already exists
+    public boolean isUserExists(String username) {
+        String sql = "SELECT COUNT(*) as count FROM users WHERE username = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("count") > 0;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to check user existence: " + e.getMessage());
+        }
+        return false;
+    }
+
+
     // Register user with role
     public void registerUser(String username, String password, String fullName, String mobile, String role)
             throws SQLException {
@@ -228,7 +246,7 @@ public class DatabaseService {
 
     // Get user by ID (for token-based auth)
     public Map<String, Object> getUserById(int userId) {
-        String sql = "SELECT id, username, role, full_name FROM users WHERE id = ?";
+        String sql = "SELECT id, username, role, full_name, mobile FROM users WHERE id = ?";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
@@ -239,6 +257,7 @@ public class DatabaseService {
                     user.put("username", rs.getString("username"));
                     user.put("role", rs.getString("role"));
                     user.put("full_name", rs.getString("full_name"));
+                    user.put("mobile", rs.getString("mobile"));
                     return user;
                 }
             }
@@ -247,6 +266,68 @@ public class DatabaseService {
         }
         return null;
     }
+
+    // Update user full name and mobile settings
+    public boolean updateUserSettings(int userId, String fullName, String mobile) {
+        String sql = "UPDATE users SET full_name = ?, mobile = ? WHERE id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, fullName);
+            pstmt.setString(2, mobile);
+            pstmt.setInt(3, userId);
+            int affected = pstmt.executeUpdate();
+            if (affected > 0) {
+                Map<String, Object> user = getUserById(userId);
+                String username = user != null ? (String) user.get("username") : "unknown";
+                logActivity(userId, username, "SETTINGS_UPDATE", "Updated personal settings (Name/Mobile)");
+                return true;
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to update user settings: " + e.getMessage());
+        }
+        return false;
+    }
+
+    // Change user password after verifying current password
+    public boolean changePassword(int userId, String currentPassword, String newPassword) throws SQLException {
+        String verifySql = "SELECT username, password FROM users WHERE id = ?";
+        String username = "";
+        String storedHash = "";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(verifySql)) {
+            pstmt.setInt(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    username = rs.getString("username");
+                    storedHash = rs.getString("password");
+                }
+            }
+        }
+
+        if (storedHash == null || storedHash.isEmpty() || !storedHash.equals(hashPassword(currentPassword))) {
+            return false;
+        }
+
+        String updateSql = "UPDATE users SET password = ?, plain_password = ? WHERE id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+            pstmt.setString(1, hashPassword(newPassword));
+            pstmt.setString(2, newPassword);
+            pstmt.setInt(3, userId);
+            int affected = pstmt.executeUpdate();
+            if (affected > 0) {
+                logActivity(userId, username, "PASSWORD_CHANGE", "Changed account password");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Delete user account (called by user themselves)
+    public boolean deleteUserAccount(int userId) {
+        return deleteUser(userId);
+    }
+
 
     // Get all students for admin dashboard
     public List<Map<String, Object>> getAllStudents() {

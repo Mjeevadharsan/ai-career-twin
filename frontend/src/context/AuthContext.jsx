@@ -57,8 +57,8 @@ export function AuthProvider({ children }) {
     return res.data
   }
 
-  const register = async (username, password, fullName = null, mobile = null) => {
-    const res = await api.post('/register', { username, password, fullName, mobile })
+  const register = async (username, password, fullName = null, mobile = null, verificationToken = null) => {
+    const res = await api.post('/register', { username, password, fullName, mobile, verificationToken })
     return res.data
   }
 
@@ -69,8 +69,17 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const updateUser = (fields) => {
+    setUser(prev => {
+      if (!prev) return null
+      const updated = { ...prev, ...fields }
+      localStorage.setItem('auth_user', JSON.stringify(updated))
+      return updated
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

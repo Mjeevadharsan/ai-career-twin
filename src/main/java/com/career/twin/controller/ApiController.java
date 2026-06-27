@@ -3,6 +3,7 @@ package com.career.twin.controller;
 import com.career.twin.ml.KNNClassifier;
 import com.career.twin.ml.KNNClassifier.CareerProbability;
 import com.career.twin.service.DatabaseService;
+import com.career.twin.service.EmailOtpService;
 import com.career.twin.service.RecommendationService;
 import com.career.twin.service.RecommendationService.AnalysisResult;
 import org.springframework.http.HttpStatus;
@@ -19,11 +20,14 @@ public class ApiController {
     private final KNNClassifier knnClassifier;
     private final DatabaseService databaseService;
     private final RecommendationService recommendationService;
+    private final EmailOtpService emailOtpService;
 
-    public ApiController(KNNClassifier knnClassifier, DatabaseService databaseService, RecommendationService recommendationService) {
+    public ApiController(KNNClassifier knnClassifier, DatabaseService databaseService,
+                         RecommendationService recommendationService, EmailOtpService emailOtpService) {
         this.knnClassifier = knnClassifier;
         this.databaseService = databaseService;
         this.recommendationService = recommendationService;
+        this.emailOtpService = emailOtpService;
     }
 
     // --- Auth helper: read userId from X-Auth-Token header ---
@@ -36,6 +40,51 @@ public class ApiController {
 
     // --- Authentication Routes ---
 
+    // Step 1: Send OTP to email
+    @PostMapping("/send-otp")
+    public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
+        String email = Objects.toString(request.get("email"), "").trim();
+
+        if (email.isEmpty() || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Please provide a valid email address."));
+        }
+
+        // Check if email is already registered
+        if (databaseService.isUserExists(email)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "This email is already registered. Please login instead."));
+        }
+
+        try {
+            emailOtpService.generateAndSendOtp(email);
+            return ResponseEntity.ok(Map.of("message", "Verification code sent to " + email));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            System.err.println("Failed to send OTP email: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to send verification email. Please try again later."));
+        }
+    }
+
+    // Step 2: Verify OTP
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
+        String email = Objects.toString(request.get("email"), "").trim();
+        String otp = Objects.toString(request.get("otp"), "").trim();
+
+        if (email.isEmpty() || otp.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email and OTP are required."));
+        }
+
+        try {
+            String token = emailOtpService.verifyOtp(email, otp);
+            return ResponseEntity.ok(Map.of("verified", true, "token", token));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("verified", false, "error", e.getMessage()));
+        }
+    }
+
+    // Step 3: Register (requires verification token)
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
         String username = Objects.toString(request.get("username"), "").trim();
@@ -44,9 +93,16 @@ public class ApiController {
             request.get("fullName") != null ? request.get("fullName") : request.get("full_name"), ""
         ).trim();
         String mobile = Objects.toString(request.get("mobile"), "").trim();
+        String verificationToken = Objects.toString(request.get("verificationToken"), "").trim();
 
         if (username.length() < 3 || password.length() < 4) {
             return ResponseEntity.badRequest().body(Map.of("error", "Username must be >= 3 chars, password >= 4 chars."));
+        }
+
+        // Validate email verification token
+        if (verificationToken.isEmpty() || !emailOtpService.consumeVerificationToken(username, verificationToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Email not verified. Please verify your email with OTP first."));
         }
 
         try {
@@ -101,6 +157,7 @@ public class ApiController {
         String username = userMeta != null ? (String) userMeta.get("username") : "";
         String role     = userMeta != null ? (String) userMeta.get("role")     : "STUDENT";
         String fullName = userMeta != null ? (String) userMeta.get("full_name"): "";
+        String mobile   = userMeta != null ? (String) userMeta.get("mobile")   : "";
 
         Map<String, Object> prof = databaseService.getProfile(userId);
         if (prof == null) {
@@ -108,7 +165,8 @@ public class ApiController {
                 "has_profile", false,
                 "username", username,
                 "role", role,
-                "full_name", fullName
+                "full_name", fullName,
+                "mobile", mobile
             ));
         }
 
@@ -136,6 +194,7 @@ public class ApiController {
         response.put("username", username);
         response.put("role", role);
         response.put("full_name", fullName);
+        response.put("mobile", mobile);
         return ResponseEntity.ok(response);
     }
 
@@ -209,6 +268,92 @@ public class ApiController {
             return ResponseEntity.ok(analysis);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid data: " + e.getMessage()));
+        }
+    }
+
+    // --- User Profile & Account Settings Routes ---
+
+    @GetMapping("/user/settings")
+    public ResponseEntity<?> getUserSettings(@RequestHeader Map<String, String> headers) {
+        Integer userId = getUserId(headers);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
+        }
+        Map<String, Object> userMeta = databaseService.getUserById(userId);
+        if (userMeta == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found."));
+        }
+        return ResponseEntity.ok(userMeta);
+    }
+
+    @PostMapping("/user/settings")
+    public ResponseEntity<?> updateUserSettings(@RequestBody Map<String, String> request,
+                                                @RequestHeader Map<String, String> headers) {
+        Integer userId = getUserId(headers);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
+        }
+        String fullName = Objects.toString(request.get("fullName") != null ? request.get("fullName") : request.get("full_name"), "").trim();
+        String mobile = Objects.toString(request.get("mobile"), "").trim();
+
+        if (fullName.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Full name cannot be empty."));
+        }
+
+        boolean success = databaseService.updateUserSettings(userId, fullName, mobile);
+        if (success) {
+            return ResponseEntity.ok(Map.of("message", "Profile settings updated successfully!", "fullName", fullName, "mobile", mobile));
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to update profile settings."));
+        }
+    }
+
+    @PostMapping("/user/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> request,
+                                            @RequestHeader Map<String, String> headers) {
+        Integer userId = getUserId(headers);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
+        }
+        String currentPassword = Objects.toString(request.get("currentPassword"), "").trim();
+        String newPassword = Objects.toString(request.get("newPassword"), "").trim();
+
+        if (currentPassword.isEmpty() || newPassword.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Current password and new password are required."));
+        }
+        if (newPassword.length() < 4) {
+            return ResponseEntity.badRequest().body(Map.of("error", "New password must be at least 4 characters long."));
+        }
+
+        try {
+            boolean success = databaseService.changePassword(userId, currentPassword, newPassword);
+            if (success) {
+                return ResponseEntity.ok(Map.of("message", "Password changed successfully!"));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Incorrect current password."));
+            }
+        } catch (SQLException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Database error: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/user/delete-account")
+    public ResponseEntity<?> deleteAccount(@RequestHeader Map<String, String> headers) {
+        Integer userId = getUserId(headers);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
+        }
+
+        Map<String, Object> userMeta = databaseService.getUserById(userId);
+        if (userMeta != null && "ADMIN".equals(userMeta.get("role"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin accounts cannot be self-deleted."));
+        }
+
+        boolean success = databaseService.deleteUserAccount(userId);
+        if (success) {
+            return ResponseEntity.ok(Map.of("message", "Your account has been permanently deleted."));
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to delete account."));
         }
     }
 
