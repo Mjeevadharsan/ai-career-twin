@@ -2,10 +2,9 @@ services:
   # Spring Boot Backend (uses H2 embedded database - no external DB needed)
   - type: web
     name: ai-career-twin
-    env: java
+    env: docker
     rootDir: backend
-    buildCommand: mvn clean package -DskipTests
-    startCommand: java -jar target/twin-1.0.0.jar
+    dockerfilePath: ./Dockerfile
     disk:
       name: h2-data
       mountPath: /opt/render/project/src/data
@@ -13,8 +12,14 @@ services:
     envVars:
       - key: BREVO_API_KEY
         sync: false
-
-
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:h2:file:/opt/render/project/src/data/career_twin;AUTO_SERVER=TRUE
+      - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        value: org.h2.Driver
+      - key: SPRING_DATASOURCE_USERNAME
+        value: sa
+      - key: SPRING_DATASOURCE_PASSWORD
+        value: sa
   # React Frontend
   - type: web
     name: ai-career-twin-1
