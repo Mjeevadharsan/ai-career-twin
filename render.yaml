@@ -10,6 +10,10 @@ services:
       name: h2-data
       mountPath: /opt/render/project/src/data
       sizeGB: 1
+    envVars:
+      - key: BREVO_API_KEY
+        sync: false
+
 
   # React Frontend
   - type: web
