@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logo from '../assets/logo.png'
@@ -9,6 +10,8 @@ export default function Navbar() {
   const location  = useLocation()
   const authPages = ['/login', '/signup', '/admin/dashboard']
   
+
+
   if (authPages.some(path => location.pathname.startsWith(path))) return null
 
   const handleLogout = async () => {

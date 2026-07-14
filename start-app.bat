@@ -15,11 +15,11 @@ echo.
 
 
 echo [1/2] Starting Spring Boot Backend...
-echo       Port: 5000
-echo       URL: http://localhost:5000
+echo       Port: 5001
+echo       URL: http://localhost:5001
 echo.
 
-start cmd /k "title Spring Boot Backend (Port 5000) && mvn spring-boot:run"
+start cmd /k "title Spring Boot Backend (Port 5001) && mvn spring-boot:run"
 
 echo Waiting 10 seconds for backend to initialize...
 timeout /t 10 /nobreak > nul
@@ -37,7 +37,7 @@ echo ========================================
 echo   Both servers are starting!
 echo ========================================
 echo.
-echo Backend:  http://localhost:5000
+echo Backend:  http://localhost:5001
 echo Frontend: http://localhost:3000
 echo.
 echo Press any key to exit this window...

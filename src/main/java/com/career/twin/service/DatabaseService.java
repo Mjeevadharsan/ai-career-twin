@@ -91,6 +91,14 @@ public class DatabaseService {
                 // Ignore if column already exists
             }
 
+            // Try to add avatar column to users table if it doesn't exist
+            try {
+                stmt.execute("ALTER TABLE users ADD COLUMN avatar LONGTEXT");
+                System.out.println("Database migration: Added avatar column to users table.");
+            } catch (SQLException e) {
+                // Ignore if column already exists
+            }
+
             stmt.execute(createProfilesTable);
             stmt.execute(createLoginHistoryTable);
             stmt.execute(createActivityLogTable);
@@ -246,7 +254,7 @@ public class DatabaseService {
 
     // Get user by ID (for token-based auth)
     public Map<String, Object> getUserById(int userId) {
-        String sql = "SELECT id, username, role, full_name, mobile FROM users WHERE id = ?";
+        String sql = "SELECT id, username, role, full_name, mobile, avatar FROM users WHERE id = ?";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
@@ -258,6 +266,7 @@ public class DatabaseService {
                     user.put("role", rs.getString("role"));
                     user.put("full_name", rs.getString("full_name"));
                     user.put("mobile", rs.getString("mobile"));
+                    user.put("avatar", rs.getString("avatar"));
                     return user;
                 }
             }
@@ -267,19 +276,20 @@ public class DatabaseService {
         return null;
     }
 
-    // Update user full name and mobile settings
-    public boolean updateUserSettings(int userId, String fullName, String mobile) {
-        String sql = "UPDATE users SET full_name = ?, mobile = ? WHERE id = ?";
+    // Update user full name, mobile, and avatar settings
+    public boolean updateUserSettings(int userId, String fullName, String mobile, String avatar) {
+        String sql = "UPDATE users SET full_name = ?, mobile = ?, avatar = ? WHERE id = ?";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, fullName);
             pstmt.setString(2, mobile);
-            pstmt.setInt(3, userId);
+            pstmt.setString(3, avatar);
+            pstmt.setInt(4, userId);
             int affected = pstmt.executeUpdate();
             if (affected > 0) {
                 Map<String, Object> user = getUserById(userId);
                 String username = user != null ? (String) user.get("username") : "unknown";
-                logActivity(userId, username, "SETTINGS_UPDATE", "Updated personal settings (Name/Mobile)");
+                logActivity(userId, username, "SETTINGS_UPDATE", "Updated personal settings (Name/Mobile/Avatar)");
                 return true;
             }
         } catch (SQLException e) {
@@ -610,5 +620,31 @@ public class DatabaseService {
             System.err.println("Failed to fetch activity logs: " + e.getMessage());
         }
         return activities;
+    }
+
+    // Reset login history (admin only)
+    public boolean resetLoginHistory() {
+        String sql = "DELETE FROM login_history";
+        try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(sql);
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Failed to reset login history: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Reset activity logs (admin only)
+    public boolean resetActivityLog() {
+        String sql = "DELETE FROM activity_log";
+        try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(sql);
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Failed to reset activity log: " + e.getMessage());
+            return false;
+        }
     }
 }

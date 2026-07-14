@@ -96,9 +96,9 @@ export default function Dashboard() {
           <h3><i className="fa-solid fa-chart-radar text-accent"/> Capability Radar</h3>
           <ResponsiveContainer width="100%" height={260}>
             <RadarChart data={radarData}>
-              <PolarGrid stroke="rgba(255,255,255,0.08)"/>
-              <PolarAngleAxis dataKey="subject" tick={{ fill:'#94a3b8', fontSize:11 }}/>
-              <Radar dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2}/>
+              <PolarGrid stroke="rgba(148, 163, 184, 0.15)"/>
+              <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-secondary)', fontSize: 10, fontWeight: 600 }}/>
+              <Radar dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} strokeWidth={2}/>
             </RadarChart>
           </ResponsiveContainer>
           <div className="vector-lists">

@@ -3,7 +3,7 @@ import axios from 'axios'
 // Determine backend root (strip trailing /api if present, then append it cleanly)
 const BACKEND_ROOT = (
   import.meta.env.VITE_API_URL
-  || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://ai-career-twin.onrender.com')
+  || (import.meta.env.DEV ? 'http://localhost:5001' : 'https://ai-career-twin.onrender.com')
 ).replace(/\/api\/?$/, '').replace(/\/$/, '')
 
 const BASE_URL = `${BACKEND_ROOT}/api`

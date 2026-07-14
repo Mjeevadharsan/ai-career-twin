@@ -240,8 +240,20 @@ export default function Signup() {
                 <i className={`fa-solid ${showPwd ? 'fa-eye-slash' : 'fa-eye'}`}/>
               </button>
             </div>
-            <div className="str-track"><div className="str-fill" style={{ width:sl.w, background:sl.c }}/></div>
-            {sl.t && <span className="str-lbl" style={{ color:sl.c }}>{sl.t}</span>}
+            <div className="pwd-checklist">
+              <span className={`chk-item ${form.password.length >= 8 ? 'pass' : ''}`}>
+                <i className={`fa-solid ${form.password.length >= 8 ? 'fa-circle-check' : 'fa-circle-dot'}`} /> Min 8 chars
+              </span>
+              <span className={`chk-item ${/[A-Z]/.test(form.password) ? 'pass' : ''}`}>
+                <i className={`fa-solid ${/[A-Z]/.test(form.password) ? 'fa-circle-check' : 'fa-circle-dot'}`} /> 1 Uppercase
+              </span>
+              <span className={`chk-item ${/[0-9]/.test(form.password) ? 'pass' : ''}`}>
+                <i className={`fa-solid ${/[0-9]/.test(form.password) ? 'fa-circle-check' : 'fa-circle-dot'}`} /> 1 Number
+              </span>
+              <span className={`chk-item ${/[^A-Za-z0-9]/.test(form.password) ? 'pass' : ''}`}>
+                <i className={`fa-solid ${/[^A-Za-z0-9]/.test(form.password) ? 'fa-circle-check' : 'fa-circle-dot'}`} /> 1 Special
+              </span>
+            </div>
             <span className="field-err">{errors.password}</span>
           </div>
 
@@ -272,7 +284,7 @@ export default function Signup() {
 
         <p className="switch-link">Already have an account? <Link to="/login">Login</Link></p>
       </div>
-      <p className="auth-foot">© 2026 AI Career Twin — B.E. CSE Final Year Project</p>
+      <p className="auth-foot">© 2026 AI Career Twin</p>
     </div>
   )
 }

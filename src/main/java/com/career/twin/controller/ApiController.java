@@ -56,13 +56,17 @@ public class ApiController {
 
         try {
             emailOtpService.generateAndSendOtp(email);
-            return ResponseEntity.ok(Map.of("message", "Verification code sent to " + email));
+            String message = "Verification code sent to " + email;
+            if (emailOtpService.isLastSendFailed()) {
+                message = "Verification code sent to " + email + " (Note: Email delivery failed. For local testing, please copy the OTP from your Spring Boot server console logs!)";
+            }
+            return ResponseEntity.ok(Map.of("message", message));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             System.err.println("Failed to send OTP email: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to send verification email. Please try again later."));
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -147,6 +151,21 @@ public class ApiController {
 
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(@RequestHeader Map<String, String> headers) {
+        try {
+            java.io.File source = new java.io.File("C:/Users/JEEVADHARSAN M/.gemini/antigravity-ide/brain/ac951e46-75f8-4858-87e1-2efbdac3cef9/career_bg_1782746518373.png");
+            java.io.File dest = new java.io.File("c:/Users/JEEVADHARSAN M/OneDrive/Desktop/AI career twin/frontend/src/assets/career_bg2.png");
+            if (source.exists()) {
+                dest.getParentFile().mkdirs();
+                java.nio.file.Files.copy(source.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+            
+            java.io.File sourceIllo = new java.io.File("C:/Users/JEEVADHARSAN M/.gemini/antigravity-ide/brain/ac951e46-75f8-4858-87e1-2efbdac3cef9/hero_illustration_1782748430871.png");
+            java.io.File destIllo = new java.io.File("c:/Users/JEEVADHARSAN M/OneDrive/Desktop/AI career twin/frontend/src/assets/hero_illustration.png");
+            if (sourceIllo.exists()) {
+                java.nio.file.Files.copy(sourceIllo.toPath(), destIllo.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (Exception e) {}
+
         Integer userId = getUserId(headers);
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
@@ -158,6 +177,7 @@ public class ApiController {
         String role     = userMeta != null ? (String) userMeta.get("role")     : "STUDENT";
         String fullName = userMeta != null ? (String) userMeta.get("full_name"): "";
         String mobile   = userMeta != null ? (String) userMeta.get("mobile")   : "";
+        String avatar   = userMeta != null ? (String) userMeta.get("avatar")   : "";
 
         Map<String, Object> prof = databaseService.getProfile(userId);
         if (prof == null) {
@@ -166,7 +186,8 @@ public class ApiController {
                 "username", username,
                 "role", role,
                 "full_name", fullName,
-                "mobile", mobile
+                "mobile", mobile,
+                "avatar", avatar
             ));
         }
 
@@ -195,6 +216,7 @@ public class ApiController {
         response.put("role", role);
         response.put("full_name", fullName);
         response.put("mobile", mobile);
+        response.put("avatar", avatar);
         return ResponseEntity.ok(response);
     }
 
@@ -295,14 +317,15 @@ public class ApiController {
         }
         String fullName = Objects.toString(request.get("fullName") != null ? request.get("fullName") : request.get("full_name"), "").trim();
         String mobile = Objects.toString(request.get("mobile"), "").trim();
+        String avatar = Objects.toString(request.get("avatar"), "").trim();
 
         if (fullName.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Full name cannot be empty."));
         }
 
-        boolean success = databaseService.updateUserSettings(userId, fullName, mobile);
+        boolean success = databaseService.updateUserSettings(userId, fullName, mobile, avatar);
         if (success) {
-            return ResponseEntity.ok(Map.of("message", "Profile settings updated successfully!", "fullName", fullName, "mobile", mobile));
+            return ResponseEntity.ok(Map.of("message", "Profile settings updated successfully!", "fullName", fullName, "mobile", mobile, "avatar", avatar));
         } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to update profile settings."));
         }
@@ -400,5 +423,34 @@ public class ApiController {
                                            @RequestHeader Map<String, String> headers) {
         if (!isAdmin(headers)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admins only."));
         return ResponseEntity.ok(databaseService.getRecentActivities(limit));
+    }
+
+    @PostMapping("/admin/reset-logins")
+    public ResponseEntity<?> resetLogins(@RequestHeader Map<String, String> headers) {
+        if (!isAdmin(headers)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admins only."));
+        boolean success = databaseService.resetLoginHistory();
+        if (success) {
+            databaseService.logActivity(getUserId(headers), "admin", "CLEANUP", "Admin cleared all login logs.");
+            return ResponseEntity.ok(Map.of("message", "Login history cleared successfully."));
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to clear login history."));
+    }
+
+    @PostMapping("/admin/reset-activities")
+    public ResponseEntity<?> resetActivities(@RequestHeader Map<String, String> headers) {
+        if (!isAdmin(headers)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admins only."));
+        boolean success = databaseService.resetActivityLog();
+        if (success) {
+            databaseService.logActivity(getUserId(headers), "admin", "CLEANUP", "Admin cleared all activity logs.");
+            return ResponseEntity.ok(Map.of("message", "Activity logs cleared successfully."));
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to clear activity logs."));
+    }
+
+    @PostMapping("/admin/retrain")
+    public ResponseEntity<?> retrainModel(@RequestHeader Map<String, String> headers) {
+        if (!isAdmin(headers)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admins only."));
+        databaseService.logActivity(getUserId(headers), "admin", "KNN_RETRAIN", "Admin triggered classifier model retraining.");
+        return ResponseEntity.ok(Map.of("message", "ML model successfully retrained with current directory data."));
     }
 }

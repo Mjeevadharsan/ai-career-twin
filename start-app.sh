@@ -6,13 +6,13 @@ echo "========================================"
 echo ""
 
 echo "[1/2] Starting Spring Boot Backend..."
-echo "      Port: 5000"
-echo "      URL: http://localhost:5000"
+echo "      Port: 5001"
+echo "      URL: http://localhost:5001"
 echo ""
 
 # Start backend in background
-gnome-terminal --title="Spring Boot Backend (Port 5000)" -- bash -c "mvn spring-boot:run; exec bash" 2>/dev/null || \
-xterm -title "Spring Boot Backend (Port 5000)" -e "mvn spring-boot:run" 2>/dev/null || \
+gnome-terminal --title="Spring Boot Backend (Port 5001)" -- bash -c "mvn spring-boot:run; exec bash" 2>/dev/null || \
+xterm -title "Spring Boot Backend (Port 5001)" -e "mvn spring-boot:run" 2>/dev/null || \
 echo "Backend starting in current terminal. Open new terminal for frontend."
 
 echo "Waiting 10 seconds for backend to initialize..."
@@ -34,7 +34,7 @@ echo "========================================"
 echo "  Both servers are starting!"
 echo "========================================"
 echo ""
-echo "Backend:  http://localhost:5000"
+echo "Backend:  http://localhost:5001"
 echo "Frontend: http://localhost:3000"
 echo ""
 echo "Press Ctrl+C to stop this script"
