@@ -35,6 +35,7 @@ public class FallbackController {
     }
 
     @RequestMapping(value = {
+        "/",
         "/login",
         "/signup",
         "/dashboard",
@@ -46,8 +47,11 @@ public class FallbackController {
         "/admin-login",
         "/admin/dashboard"
     })
-    public String forward() {
-        // Forward to index.html so React Router handles the routing
-        return "forward:/index.html";
+    public String redirect(jakarta.servlet.http.HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        if (uri == null || uri.equals("/")) {
+            return "redirect:https://ai-career-twin.onrender.com";
+        }
+        return "redirect:https://ai-career-twin.onrender.com" + uri;
     }
 }
