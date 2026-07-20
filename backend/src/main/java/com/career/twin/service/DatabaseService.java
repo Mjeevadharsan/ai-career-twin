@@ -343,9 +343,8 @@ public class DatabaseService {
     public List<Map<String, Object>> getAllStudents() {
         List<Map<String, Object>> students = new ArrayList<>();
         String sql = "SELECT u.id, u.username, u.plain_password, u.full_name, u.mobile, u.created_at, u.last_login, u.login_count, "
-                +
-                "p.cgpa, p.projects, p.certifications FROM users u " +
-                "LEFT JOIN profiles p ON u.id = p.user_id WHERE u.role = 'STUDENT' ORDER BY u.created_at DESC";
+                + "p.cgpa, p.projects, p.certifications, p.apt_analytical, p.apt_coding, p.apt_communication, p.apt_problem_solving, p.skills, p.interests "
+                + "FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.role = 'STUDENT' ORDER BY u.created_at DESC";
 
         try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement();
@@ -363,6 +362,12 @@ public class DatabaseService {
                 student.put("cgpa", rs.getObject("cgpa"));
                 student.put("projects", rs.getObject("projects"));
                 student.put("certifications", rs.getObject("certifications"));
+                student.put("apt_analytical", rs.getObject("apt_analytical"));
+                student.put("apt_coding", rs.getObject("apt_coding"));
+                student.put("apt_communication", rs.getObject("apt_communication"));
+                student.put("apt_problem_solving", rs.getObject("apt_problem_solving"));
+                student.put("skills", rs.getString("skills"));
+                student.put("interests", rs.getString("interests"));
                 student.put("has_profile", rs.getObject("cgpa") != null);
                 students.add(student);
             }

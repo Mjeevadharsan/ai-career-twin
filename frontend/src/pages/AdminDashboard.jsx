@@ -29,8 +29,9 @@ export default function AdminDashboard() {
   const [sortKey, setSortKey] = useState('created_at')
   const [sortOrder, setSortOrder] = useState('desc')
   
-  // Deletion Modal State
+  // Deletion Modal & Detail View State
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, studentId: null, studentName: '' })
+  const [selectedStudent, setSelectedStudent] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [actionMsg, setActionMsg] = useState(null)
   const [visiblePasswords, setVisiblePasswords] = useState({})
@@ -484,13 +485,22 @@ export default function AdminDashboard() {
                         <td className="numeric font-mono">{s.login_count}</td>
                         <td className="font-small">{formatDate(s.last_login)}</td>
                         <td className="action-col">
-                          <button 
-                            onClick={() => handleDeleteClick(s)} 
-                            className="btn-delete"
-                            title="Delete Student Account"
-                          >
-                            <i className="fa-solid fa-trash-can"></i>
-                          </button>
+                          <div className="action-btns-group">
+                            <button 
+                              onClick={() => setSelectedStudent(s)} 
+                              className="btn-view"
+                              title="View Complete Student Details"
+                            >
+                              <i className="fa-solid fa-eye"></i>
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteClick(s)} 
+                              className="btn-delete"
+                              title="Delete Student Account"
+                            >
+                              <i className="fa-solid fa-trash-can"></i>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -614,6 +624,75 @@ export default function AdminDashboard() {
                 ) : (
                   'Permanently Delete Student'
                 )}
+              </button>
+            </div>
+          </div>
+      {/* --- STUDENT FULL DETAILS MODAL --- */}
+      {selectedStudent && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal glass-card student-detail-modal">
+            <div className="modal-header">
+              <i className="fa-solid fa-id-card text-accent"></i>
+              <h3>Student Registration &amp; Profile Details</h3>
+            </div>
+            <div className="modal-body student-detail-body">
+              <div className="detail-section">
+                <h4><i className="fa-solid fa-user"></i> Account &amp; Identity</h4>
+                <div className="detail-grid">
+                  <div><span className="lbl">Full Name:</span> <strong>{selectedStudent.full_name || 'Not Provided'}</strong></div>
+                  <div><span className="lbl">Email / Username:</span> <strong>{selectedStudent.username}</strong></div>
+                  <div><span className="lbl">Mobile Number:</span> <strong>{selectedStudent.mobile || 'Not Provided'}</strong></div>
+                  <div><span className="lbl">Password:</span> <code>{selectedStudent.plain_password || 'Encrypted'}</code></div>
+                  <div><span className="lbl">Registered On:</span> {formatDate(selectedStudent.created_at)}</div>
+                  <div><span className="lbl">Last Active:</span> {formatDate(selectedStudent.last_login)}</div>
+                  <div><span className="lbl">Login Count:</span> {selectedStudent.login_count} sessions</div>
+                </div>
+              </div>
+
+              {selectedStudent.has_profile ? (
+                <div className="detail-section">
+                  <h4><i className="fa-solid fa-graduation-cap"></i> Academic &amp; Aptitude Profile</h4>
+                  <div className="detail-grid">
+                    <div><span className="lbl">CGPA:</span> <strong>{selectedStudent.cgpa}</strong></div>
+                    <div><span className="lbl">Projects:</span> <strong>{selectedStudent.projects}</strong></div>
+                    <div><span className="lbl">Certifications:</span> <strong>{selectedStudent.certifications}</strong></div>
+                    <div><span className="lbl">Analytical Aptitude:</span> <strong>{selectedStudent.apt_analytical !== null ? `${selectedStudent.apt_analytical}%` : '—'}</strong></div>
+                    <div><span className="lbl">Coding Aptitude:</span> <strong>{selectedStudent.apt_coding !== null ? `${selectedStudent.apt_coding}%` : '—'}</strong></div>
+                    <div><span className="lbl">Communication:</span> <strong>{selectedStudent.apt_communication !== null ? `${selectedStudent.apt_communication}%` : '—'}</strong></div>
+                    <div><span className="lbl">Problem Solving:</span> <strong>{selectedStudent.apt_problem_solving !== null ? `${selectedStudent.apt_problem_solving}%` : '—'}</strong></div>
+                  </div>
+
+                  {selectedStudent.skills && (
+                    <div className="detail-tags-group">
+                      <span className="lbl">Skills:</span>
+                      <div className="chips-row">
+                        {selectedStudent.skills.split(',').map((sk, idx) => (
+                          <span key={idx} className="chip-badge chip-blue">{sk.trim()}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedStudent.interests && (
+                    <div className="detail-tags-group">
+                      <span className="lbl">Interests:</span>
+                      <div className="chips-row">
+                        {selectedStudent.interests.split(',').map((it, idx) => (
+                          <span key={idx} className="chip-badge chip-purple">{it.trim()}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="pending-profile-notice">
+                  <i className="fa-solid fa-circle-info"></i> This student has registered but has not yet submitted their academic career assessment profile.
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setSelectedStudent(null)} className="btn btn-primary btn-sm">
+                Close Details
               </button>
             </div>
           </div>
