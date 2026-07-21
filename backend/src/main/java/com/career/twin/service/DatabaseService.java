@@ -344,7 +344,7 @@ public class DatabaseService {
         List<Map<String, Object>> students = new ArrayList<>();
         String sql = "SELECT u.id, u.username, u.plain_password, u.full_name, u.mobile, u.created_at, u.last_login, u.login_count, "
                 + "p.cgpa, p.projects, p.certifications, p.apt_analytical, p.apt_coding, p.apt_communication, p.apt_problem_solving, p.skills, p.interests "
-                + "FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.role = 'STUDENT' ORDER BY u.created_at DESC";
+                + "FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE (u.role IS NULL OR UPPER(u.role) != 'ADMIN') ORDER BY u.id DESC";
 
         try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement();
@@ -411,7 +411,7 @@ public class DatabaseService {
                 Statement stmt = conn.createStatement()) {
 
             // Total students
-            ResultSet rs1 = stmt.executeQuery("SELECT COUNT(*) as count FROM users WHERE role = 'STUDENT'");
+            ResultSet rs1 = stmt.executeQuery("SELECT COUNT(*) as count FROM users WHERE role IS NULL OR UPPER(role) != 'ADMIN'");
             if (rs1.next())
                 stats.put("total_students", rs1.getInt("count"));
 
@@ -429,7 +429,7 @@ public class DatabaseService {
 
             // New signups today
             ResultSet rs4 = stmt.executeQuery(
-                    "SELECT COUNT(*) as count FROM users WHERE CAST(created_at AS DATE) = CURRENT_DATE AND role = 'STUDENT'");
+                    "SELECT COUNT(*) as count FROM users WHERE CAST(created_at AS DATE) = CURRENT_DATE AND (role IS NULL OR UPPER(role) != 'ADMIN')");
             if (rs4.next())
                 stats.put("signups_today", rs4.getInt("count"));
 
@@ -472,7 +472,7 @@ public class DatabaseService {
             }
 
             // Delete user
-            String deleteUser = "DELETE FROM users WHERE id = ? AND role = 'STUDENT'";
+            String deleteUser = "DELETE FROM users WHERE id = ? AND (role IS NULL OR UPPER(role) != 'ADMIN')";
             try (PreparedStatement pstmt = conn.prepareStatement(deleteUser)) {
                 pstmt.setInt(1, userId);
                 int affected = pstmt.executeUpdate();
