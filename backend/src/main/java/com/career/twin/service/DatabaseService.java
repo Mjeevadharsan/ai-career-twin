@@ -134,10 +134,94 @@ public class DatabaseService {
                 pstmt.executeUpdate();
             }
 
+            // Seed sample student data if user database has no student records
+            seedSampleDataIfEmpty(conn);
+
             System.out.println("MySQL tables successfully initialized.");
         } catch (SQLException e) {
             System.err.println("Database initialization failed: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    // Seed default student accounts & assessment profiles if empty
+    private void seedSampleDataIfEmpty(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM users WHERE (role IS NULL OR UPPER(role) != 'ADMIN')");
+            if (rs.next() && rs.getInt("count") == 0) {
+                System.out.println("Seeding default student accounts and profile data...");
+                
+                Object[][] sampleStudents = {
+                    {"mjeevadharsan@gmail.com", "password123", "Jeevadharsan M", "+91 9443322110", 9.3, 6, 5, 95.0, 96.0, 88.0, 94.0, "Java,Spring Boot,React,Machine Learning,MySQL,Python", "Artificial Intelligence,Full Stack Development,Data Science"},
+                    {"rahul.sharma@example.com", "password123", "Rahul Sharma", "+91 9876543210", 8.8, 4, 3, 85.0, 90.0, 78.0, 88.0, "Java,Python,Spring Boot,MySQL,React", "Software Engineering,AI,Cloud Computing"},
+                    {"priya.patel@example.com", "password123", "Priya Patel", "+91 9812345678", 9.1, 5, 4, 92.0, 85.0, 95.0, 90.0, "Python,Data Analysis,Machine Learning,SQL,Tableau", "Data Science,Machine Learning,Business Analytics"},
+                    {"arjun.verma@example.com", "password123", "Arjun Verma", "+91 9765432109", 7.9, 3, 2, 75.0, 82.0, 70.0, 80.0, "JavaScript,React,Node.js,HTML,CSS,MongoDB", "Full Stack Web Development,UI/UX Design"},
+                    {"kavya.s@example.com", "password123", "Kavya Sundaram", "+91 9654321098", 8.5, 3, 3, 88.0, 79.0, 90.0, 85.0, "Cybersecurity,Networking,Linux,Python,Ethical Hacking", "Cybersecurity,Network Engineering,Cloud Security"}
+                };
+
+                String insertUser = "INSERT INTO users (username, password, plain_password, full_name, mobile, role, created_at, last_login, login_count) VALUES (?, ?, ?, ?, ?, 'STUDENT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 3)";
+                String insertProfile = "INSERT INTO profiles (user_id, cgpa, projects, certifications, apt_analytical, apt_coding, apt_communication, apt_problem_solving, skills, interests) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                String insertHistory = "INSERT INTO login_history (user_id, login_time) VALUES (?, CURRENT_TIMESTAMP)";
+                String insertLog = "INSERT INTO activity_log (user_id, username, action, details, timestamp) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)";
+
+                for (Object[] s : sampleStudents) {
+                    int userId = 0;
+                    try (PreparedStatement uPstmt = conn.prepareStatement(insertUser, Statement.RETURN_GENERATED_KEYS)) {
+                        String email = (String) s[0];
+                        String rawPwd = (String) s[1];
+                        String name = (String) s[2];
+                        String mobile = (String) s[3];
+
+                        uPstmt.setString(1, email);
+                        uPstmt.setString(2, hashPassword(rawPwd));
+                        uPstmt.setString(3, rawPwd);
+                        uPstmt.setString(4, name);
+                        uPstmt.setString(5, mobile);
+                        uPstmt.executeUpdate();
+
+                        try (ResultSet keys = uPstmt.getGeneratedKeys()) {
+                            if (keys.next()) {
+                                userId = keys.getInt(1);
+                            }
+                        }
+                    }
+
+                    if (userId > 0) {
+                        // Insert Profile
+                        try (PreparedStatement pPstmt = conn.prepareStatement(insertProfile)) {
+                            pPstmt.setInt(1, userId);
+                            pPstmt.setDouble(2, (Double) s[4]);
+                            pPstmt.setInt(3, (Integer) s[5]);
+                            pPstmt.setInt(4, (Integer) s[6]);
+                            pPstmt.setDouble(5, (Double) s[7]);
+                            pPstmt.setDouble(6, (Double) s[8]);
+                            pPstmt.setDouble(7, (Double) s[9]);
+                            pPstmt.setDouble(8, (Double) s[10]);
+                            pPstmt.setString(9, (String) s[11]);
+                            pPstmt.setString(10, (String) s[12]);
+                            pPstmt.executeUpdate();
+                        }
+
+                        // Insert Login History
+                        try (PreparedStatement hPstmt = conn.prepareStatement(insertHistory)) {
+                            hPstmt.setInt(1, userId);
+                            hPstmt.executeUpdate();
+                        }
+
+                        // Insert Activity Log
+                        try (PreparedStatement lPstmt = conn.prepareStatement(insertLog)) {
+                            lPstmt.setInt(1, userId);
+                            lPstmt.setString(2, (String) s[0]);
+                            lPstmt.setString(3, "REGISTRATION");
+                            lPstmt.setString(4, "Student account registered & career assessment profile saved for " + s[2]);
+                            lPstmt.executeUpdate();
+                        }
+                    }
+                }
+                System.out.println("Successfully pre-fed sample student accounts and career profiles.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to seed sample student data: " + e.getMessage());
         }
     }
 

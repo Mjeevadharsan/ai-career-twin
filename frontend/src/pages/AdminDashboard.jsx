@@ -333,8 +333,8 @@ export default function AdminDashboard() {
               {/* Left Side: Recent Signups Table */}
               <div className="glass-card table-card">
                 <div className="card-header-row">
-                  <h3><i className="fa-solid fa-users text-accent"></i> Recently Registered</h3>
-                  <button className="btn-text" onClick={() => setActiveTab('students')}>View All Directory</button>
+                  <h3><i className="fa-solid fa-users text-accent"></i> Registered Student Directory ({students.length})</h3>
+                  <button className="btn-text" onClick={() => setActiveTab('students')}>Manage All Directory</button>
                 </div>
                 
                 <div className="table-responsive">
@@ -344,10 +344,11 @@ export default function AdminDashboard() {
                         <th>Student / Account</th>
                         <th>Registered On</th>
                         <th>Status</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {students.slice(0, 5).map(s => (
+                      {students.map(s => (
                         <tr key={s.id}>
                           <td>
                             <div className="name-cell">
@@ -361,11 +362,20 @@ export default function AdminDashboard() {
                               {s.has_profile ? 'Twin Ready' : 'Pending Profile'}
                             </span>
                           </td>
+                          <td>
+                            <button 
+                              onClick={() => setSelectedStudent(s)} 
+                              className="btn-view"
+                              title="View Complete Student Details"
+                            >
+                              <i className="fa-solid fa-eye"></i>
+                            </button>
+                          </td>
                         </tr>
                       ))}
                       {students.length === 0 && (
                         <tr>
-                          <td colSpan="3" className="empty-row">No students found.</td>
+                          <td colSpan="4" className="empty-row">No students found.</td>
                         </tr>
                       )}
                     </tbody>
