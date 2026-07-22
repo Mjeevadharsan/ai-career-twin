@@ -99,6 +99,14 @@ public class DatabaseService {
                 // Ignore if column already exists
             }
 
+            // Ensure created_at and last_login are populated for all records
+            try {
+                stmt.execute("UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL");
+                stmt.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE last_login IS NULL");
+            } catch (SQLException e) {
+                // Ignore migration errors if any
+            }
+
             stmt.execute(createProfilesTable);
             stmt.execute(createLoginHistoryTable);
             stmt.execute(createActivityLogTable);
@@ -173,7 +181,7 @@ public class DatabaseService {
     // Register user with role
     public void registerUser(String username, String password, String fullName, String mobile, String role)
             throws SQLException {
-        String sql = "INSERT INTO users (username, password, plain_password, full_name, mobile, role) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO users (username, password, plain_password, full_name, mobile, role, created_at, last_login) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
