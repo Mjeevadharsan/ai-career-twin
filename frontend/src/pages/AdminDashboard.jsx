@@ -50,8 +50,8 @@ export default function AdminDashboard() {
       const [statsRes, studentsRes, historyRes, activitiesRes] = await Promise.all([
         api.get('/admin/stats'),
         api.get('/admin/students'),
-        api.get('/admin/login-history?limit=30'),
-        api.get('/admin/activities?limit=35')
+        api.get('/admin/login-history?limit=500'),
+        api.get('/admin/activities?limit=500')
       ])
       
       setStats(statsRes.data)
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
       try {
         const [statsRes, activitiesRes] = await Promise.all([
           api.get('/admin/stats'),
-          api.get('/admin/activities?limit=35')
+          api.get('/admin/activities?limit=500')
         ])
         setStats(statsRes.data)
         setActivities(activitiesRes.data)
@@ -311,20 +311,20 @@ export default function AdminDashboard() {
 
               <div className="admin-stat-card glass-card border-green">
                 <div className="stat-head">
-                  <span>Active Logins Today</span>
+                  <span>Total System Logins</span>
                   <i className="fa-solid fa-bolt color-green"></i>
                 </div>
-                <div className="stat-number">{stats.logins_today}</div>
-                <div className="stat-foot">Authentication sessions recorded today</div>
+                <div className="stat-number">{stats.total_logins !== undefined ? stats.total_logins : (stats.logins_today || 0)}</div>
+                <div className="stat-foot">{stats.logins_today || 0} sessions today • {stats.total_logins || 0} total all-time</div>
               </div>
 
               <div className="admin-stat-card glass-card border-orange">
                 <div className="stat-head">
-                  <span>Signups Today</span>
+                  <span>Registered Signups</span>
                   <i className="fa-solid fa-user-plus color-orange"></i>
                 </div>
-                <div className="stat-number">{stats.signups_today}</div>
-                <div className="stat-foot">New accounts registered in last 24h</div>
+                <div className="stat-number">{stats.total_students || 0}</div>
+                <div className="stat-foot">{stats.signups_today || 0} new signups today • {stats.total_students || 0} all-time</div>
               </div>
             </div>
 
@@ -564,7 +564,7 @@ export default function AdminDashboard() {
             <div className="glass-card">
               <div className="card-header-row">
                 <h3><i className="fa-solid fa-clock-rotate-left text-accent"></i> Access Authentication History</h3>
-                <span className="info-lbl">Recent 30 log records displayed</span>
+                <span className="info-lbl">All-Time Authentication History ({loginHistory.length} records)</span>
               </div>
 
               <div className="table-responsive">

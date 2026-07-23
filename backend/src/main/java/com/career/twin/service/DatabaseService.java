@@ -442,7 +442,7 @@ public class DatabaseService {
         try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement()) {
 
-            // Total students
+            // Total students (All days)
             ResultSet rs1 = stmt.executeQuery("SELECT COUNT(*) as count FROM users WHERE role IS NULL OR UPPER(role) != 'ADMIN'");
             if (rs1.next())
                 stats.put("total_students", rs1.getInt("count"));
@@ -451,6 +451,11 @@ public class DatabaseService {
             ResultSet rs2 = stmt.executeQuery("SELECT COUNT(*) as count FROM profiles");
             if (rs2.next())
                 stats.put("students_with_profiles", rs2.getInt("count"));
+
+            // Total logins (All days)
+            ResultSet rs3Total = stmt.executeQuery("SELECT COUNT(*) as count FROM login_history");
+            if (rs3Total.next())
+                stats.put("total_logins", rs3Total.getInt("count"));
 
             // Total logins today
             ResultSet rs3 = stmt
