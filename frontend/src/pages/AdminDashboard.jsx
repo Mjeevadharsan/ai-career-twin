@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import UserAvatar from '../components/UserAvatar'
 import './AdminDashboard.css'
 
 export default function AdminDashboard() {
@@ -199,9 +200,7 @@ export default function AdminDashboard() {
         </div>
         
         <div className="admin-profile-section">
-          <div className="admin-avatar">
-            <i className="fa-solid fa-user-tie"></i>
-          </div>
+          <UserAvatar email={user?.username || 'admin@careertwin.com'} name={user?.fullName || 'Administrator'} size={42} />
           <div className="admin-meta">
             <h4>{user?.fullName || 'Administrator'}</h4>
             <span>{user?.username}</span>
@@ -488,9 +487,7 @@ export default function AdminDashboard() {
                       <tr key={s.id}>
                         <td>
                           <div className="student-profile-cell">
-                            <div className="student-icon">
-                              <i className="fa-solid fa-user-graduate"></i>
-                            </div>
+                            <UserAvatar email={s.username} name={s.full_name} size={32} />
                             <strong>{s.full_name || 'Not Filled'}</strong>
                           </div>
                         </td>
@@ -676,9 +673,12 @@ export default function AdminDashboard() {
       {selectedStudent && (
         <div className="admin-modal-overlay">
           <div className="admin-modal glass-card student-detail-modal">
-            <div className="modal-header">
-              <i className="fa-solid fa-id-card text-accent"></i>
-              <h3>Student Registration &amp; Profile Details</h3>
+            <div className="modal-header" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <UserAvatar email={selectedStudent.username} name={selectedStudent.full_name} size={48} />
+              <div>
+                <h3 style={{ margin: 0 }}>{selectedStudent.full_name || 'Student Details'}</h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>{selectedStudent.username}</span>
+              </div>
             </div>
             <div className="modal-body student-detail-body">
               <div className="detail-section">
